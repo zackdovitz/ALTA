@@ -1,913 +1,1400 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ALTA Survey Analyzer — Professional Legal Review</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked@11/marked.min.js"></script>
-  <style>
-    :root {
-      --navy: #1a2e4a;
-      --navy-dark: #0f1d30;
-      --navy-light: #243d5e;
-      --gold: #c9a14a;
-      --gold-light: #e4bf7a;
-    }
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #eef1f6;
-      margin: 0;
-      height: 100vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-    header {
-      background: var(--navy-dark);
-      border-bottom: 3px solid var(--gold);
-      padding: 0 24px;
-      height: 58px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-shrink: 0;
-      z-index: 10;
-    }
-    .header-brand { display: flex; align-items: center; gap: 12px; }
-    .header-icon { width: 34px; height: 34px; background: var(--gold); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-    .header-title { color: #fff; font-size: 18px; font-weight: 700; }
-    .header-sub { color: #8fa8c4; font-size: 12px; margin-top: 1px; }
-    .header-badge { background: rgba(201,161,74,.15); border: 1px solid rgba(201,161,74,.4); color: var(--gold-light); font-size: 11px; padding: 4px 10px; border-radius: 20px; letter-spacing: .5px; }
-    .main-layout { display: flex; flex: 1; overflow: hidden; }
-    aside { width: 380px; flex-shrink: 0; background: var(--navy); display: flex; flex-direction: column; overflow: hidden; }
-    .sidebar-scroll { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
-    .sidebar-scroll::-webkit-scrollbar { width: 5px; }
-    .sidebar-scroll::-webkit-scrollbar-thumb { background: #2d4d6e; border-radius: 3px; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALTA Survey Analyzer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+/* ============================================================
+   CSS CUSTOM PROPERTIES — NIGHT (DARK) MODE = DEFAULT (:root)
+   Light mode overrides applied via .theme-light on <html>
+   ============================================================ */
+:root {
+  --header-bg: #0f1d30;
+  --sidebar-bg: #1a2e4a;
+  --sidebar-section-bg: #122035;
+  --sidebar-text: #c8d8ea;
+  --sidebar-label: #8aa8c8;
+  --sidebar-border: #1e3a5f;
+  --results-bg: #0d1826;
+  --results-toolbar-bg: #122035;
+  --results-card-bg: #172840;
+  --results-card-text: #b8cce0;
+  --results-border: #1e3a5f;
+  --input-bg: #0f1d30;
+  --input-border: #2a4a6e;
+  --input-text: #c8d8ea;
+  --input-placeholder: #5a7a9a;
+  --dropzone-bg: #0f1d30;
+  --dropzone-border: #2a4a6e;
+  --dropzone-text: #6a8aaa;
+  --file-item-bg: #122035;
+  --file-item-text: #a8c0d8;
+  --badge-bg: #0f1d30;
+  --badge-text: #7a9ab8;
+  --toggle-bg: #0f1d30;
+  --toggle-active-bg: #1e3a5f;
+  --toggle-text: #6a8aaa;
+  --toggle-active-text: #c8d8ea;
+  --disclaimer-bg: #332500;
+  --disclaimer-text: #f0c060;
+  --disclaimer-border: #553e00;
+  --gold: #c9a14a;
+  --gold-hover: #d4b060;
+  --btn-secondary-bg: #1e3a5f;
+  --btn-secondary-text: #c8d8ea;
+  --btn-secondary-hover: #2a4a7a;
+  --scrollbar-track: #0f1d30;
+  --scrollbar-thumb: #2a4a6e;
+  --risk-high-bg: rgba(220,38,38,0.15);
+  --risk-high-border: #dc2626;
+  --risk-high-text: #f87171;
+  --risk-med-bg: rgba(217,119,6,0.15);
+  --risk-med-border: #d97706;
+  --risk-med-text: #fbbf24;
+  --risk-low-bg: rgba(22,163,74,0.15);
+  --risk-low-border: #16a34a;
+  --risk-low-text: #4ade80;
+  --risk-info-bg: rgba(37,99,235,0.15);
+  --risk-info-border: #2563eb;
+  --risk-info-text: #60a5fa;
+}
 
-    /* API Key section */
-    .api-key-section { background: rgba(201,161,74,.08); border: 1px solid rgba(201,161,74,.25); border-radius: 10px; padding: 12px; }
-    .api-key-label { color: var(--gold-light); font-size: 12px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-    .api-key-input { width: 100%; background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.15); border-radius: 6px; color: #c8d8ea; font-size: 12px; padding: 8px 10px; outline: none; font-family: monospace; }
-    .api-key-input:focus { border-color: var(--gold); }
-    .api-key-input::placeholder { color: #3d5a78; }
-    .api-key-hint { color: #5a7a9a; font-size: 11px; margin-top: 6px; }
-    .api-key-ok { color: #34d399; font-size: 11px; margin-top: 4px; display: none; }
+html.theme-light {
+  --sidebar-bg: #f2f6fc;
+  --sidebar-section-bg: #ffffff;
+  --sidebar-text: #1a2e4a;
+  --sidebar-label: #4a6a8a;
+  --sidebar-border: #d0dcea;
+  --results-bg: #f4f7fb;
+  --results-toolbar-bg: #ffffff;
+  --results-card-bg: #ffffff;
+  --results-card-text: #1a2e4a;
+  --results-border: #d0dcea;
+  --input-bg: #ffffff;
+  --input-border: #b0c4dc;
+  --input-text: #1a2e4a;
+  --input-placeholder: #8aabca;
+  --dropzone-bg: #f8faff;
+  --dropzone-border: #b0c4dc;
+  --dropzone-text: #7a9ab8;
+  --file-item-bg: #edf2f9;
+  --file-item-text: #2a4a6a;
+  --badge-bg: #e2eaf5;
+  --badge-text: #4a6a8a;
+  --toggle-bg: #e2eaf5;
+  --toggle-active-bg: #1a2e4a;
+  --toggle-text: #4a6a8a;
+  --toggle-active-text: #ffffff;
+  --disclaimer-bg: #fffbeb;
+  --disclaimer-text: #92400e;
+  --disclaimer-border: #fcd34d;
+  --btn-secondary-bg: #e2eaf5;
+  --btn-secondary-text: #1a2e4a;
+  --btn-secondary-hover: #c8d8ea;
+  --scrollbar-track: #f0f4f9;
+  --scrollbar-thumb: #b0c4dc;
+  --risk-high-bg: rgba(220,38,38,0.08);
+  --risk-high-border: #dc2626;
+  --risk-high-text: #b91c1c;
+  --risk-med-bg: rgba(217,119,6,0.08);
+  --risk-med-border: #d97706;
+  --risk-med-text: #b45309;
+  --risk-low-bg: rgba(22,163,74,0.08);
+  --risk-low-border: #16a34a;
+  --risk-low-text: #15803d;
+  --risk-info-bg: rgba(37,99,235,0.08);
+  --risk-info-border: #2563eb;
+  --risk-info-text: #1d4ed8;
+}
 
-    .upload-section { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; overflow: hidden; }
-    .section-header { padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
-    .section-header:hover { background: rgba(255,255,255,.04); }
-    .section-label { display: flex; align-items: center; gap: 8px; color: #c8d8ea; font-size: 13px; font-weight: 600; }
-    .section-dot { width: 9px; height: 9px; border-radius: 50%; }
-    .dot-blue { background: #60a5fa; } .dot-green { background: #34d399; } .dot-purple { background: #a78bfa; }
-    .section-meta { display: flex; align-items: center; gap: 8px; }
-    .file-count { background: rgba(255,255,255,.12); color: #9bb8d4; font-size: 11px; padding: 2px 7px; border-radius: 10px; }
-    .chevron { color: #5a7a9a; font-size: 12px; transition: transform .2s; }
-    .chevron.open { transform: rotate(180deg); }
-    .section-body { display: none; }
-    .section-body.open { display: block; }
-    .drop-zone { margin: 0 12px 12px; border: 2px dashed rgba(255,255,255,.15); border-radius: 8px; padding: 14px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; }
-    .drop-zone:hover, .drop-zone.dragover { border-color: var(--gold); background: rgba(201,161,74,.07); }
-    .drop-zone-text { color: #7a9ab8; font-size: 12px; line-height: 1.5; }
-    .drop-zone-text strong { color: var(--gold-light); }
-    .file-list { padding: 0 12px 8px; display: flex; flex-direction: column; gap: 4px; }
-    .file-item { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); border-radius: 7px; padding: 8px 10px; display: flex; align-items: center; gap: 8px; transition: background .15s; }
-    .file-item:hover { background: rgba(255,255,255,.1); }
-    .file-item.selected { background: rgba(201,161,74,.12); border-color: rgba(201,161,74,.3); }
-    .file-cb { width: 15px; height: 15px; cursor: pointer; accent-color: var(--gold); flex-shrink: 0; }
-    .file-icon { font-size: 15px; flex-shrink: 0; }
-    .file-info { flex: 1; min-width: 0; }
-    .file-name { color: #cde; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
-    .file-name:hover { color: var(--gold-light); }
-    .file-name-input { background: rgba(255,255,255,.1); border: 1px solid var(--gold); border-radius: 4px; color: #fff; font-size: 12px; padding: 2px 6px; width: 100%; outline: none; }
-    .file-size { color: #5a7a9a; font-size: 11px; }
-    .file-actions { display: flex; gap: 4px; flex-shrink: 0; }
-    .icon-btn { width: 26px; height: 26px; background: transparent; border: none; border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; transition: background .15s; color: #7a9ab8; }
-    .icon-btn:hover { background: rgba(255,255,255,.12); color: #cde; }
-    .icon-btn.danger:hover { background: rgba(239,68,68,.15); color: #f87171; }
-    .bulk-bar { margin: 0 12px 10px; display: flex; gap: 6px; }
-    .bulk-btn { flex: 1; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; }
-    .bulk-btn:disabled { opacity: .35; cursor: default; }
-    .bulk-btn-danger { background: rgba(239,68,68,.2); color: #f87171; border: 1px solid rgba(239,68,68,.25); }
-    .bulk-btn-danger:not(:disabled):hover { background: rgba(239,68,68,.35); }
-    .bulk-btn-secondary { background: rgba(255,255,255,.08); color: #9bb8d4; border: 1px solid rgba(255,255,255,.1); }
-    .bulk-btn-secondary:not(:disabled):hover { background: rgba(255,255,255,.14); }
-    .context-section { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); border-radius: 10px; padding: 12px; }
-    .context-label { color: #9bb8d4; font-size: 12px; font-weight: 600; letter-spacing: .3px; margin-bottom: 8px; }
-    textarea#contextNotes { width: 100%; height: 100px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 6px; color: #c8d8ea; font-size: 12.5px; line-height: 1.6; padding: 10px; resize: vertical; outline: none; font-family: inherit; }
-    textarea#contextNotes:focus { border-color: var(--gold); }
-    textarea#contextNotes::placeholder { color: #3d5a78; }
-    .sidebar-footer { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,.07); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
-    .doc-summary { display: flex; gap: 6px; flex-wrap: wrap; }
-    .doc-pill { font-size: 11px; padding: 3px 8px; border-radius: 12px; font-weight: 500; }
-    .pill-blue { background: rgba(96,165,250,.15); color: #93c5fd; border: 1px solid rgba(96,165,250,.2); }
-    .pill-green { background: rgba(52,211,153,.12); color: #6ee7b7; border: 1px solid rgba(52,211,153,.2); }
-    .pill-purple { background: rgba(167,139,250,.12); color: #c4b5fd; border: 1px solid rgba(167,139,250,.2); }
-    .analyze-btn { width: 100%; padding: 13px; background: var(--gold); color: var(--navy-dark); border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background .2s, transform .1s; }
-    .analyze-btn:hover:not(:disabled) { background: var(--gold-light); transform: translateY(-1px); }
-    .analyze-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
-    .clear-all-btn { width: 100%; padding: 7px; background: transparent; color: #5a7a9a; border: 1px solid rgba(255,255,255,.08); border-radius: 6px; font-size: 11px; cursor: pointer; }
-    .clear-all-btn:hover { color: #f87171; border-color: rgba(239,68,68,.3); }
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* Results */
-    .results-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #f0f2f7; }
-    .results-toolbar { padding: 10px 20px; background: #fff; border-bottom: 1px solid #d8dde8; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-    .results-title { font-size: 14px; font-weight: 600; color: #1a2e4a; }
-    .results-status { font-size: 12px; color: #7a8eab; }
-    .toolbar-actions { display: flex; gap: 8px; }
-    .toolbar-btn { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid #c8d0de; background: #fff; color: #4a5a78; transition: background .15s; }
-    .toolbar-btn:hover { background: #f0f2f7; }
-    .toolbar-btn:disabled { opacity: .4; cursor: default; }
-    .results-scroll { flex: 1; overflow-y: auto; padding: 24px; }
-    .results-scroll::-webkit-scrollbar { width: 6px; }
-    .results-scroll::-webkit-scrollbar-thumb { background: #c0c8d8; border-radius: 3px; }
-    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 16px; color: #8a9ab8; }
-    .empty-icon { font-size: 56px; opacity: .4; }
-    .empty-title { font-size: 20px; font-weight: 600; color: #4a5a78; }
-    .empty-desc { font-size: 14px; max-width: 420px; text-align: center; line-height: 1.6; }
-    .empty-steps { background: #fff; border-radius: 12px; padding: 20px 28px; max-width: 400px; border: 1px solid #dce2ef; }
-    .empty-step { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; border-bottom: 1px solid #eef1f7; font-size: 13px; color: #5a6a88; }
-    .empty-step:last-child { border-bottom: none; }
-    .step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--navy); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
-    .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 40px; text-align: center; }
-    .spinner-ring { width: 48px; height: 48px; border: 4px solid #dce4f0; border-top-color: var(--navy); border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-label { font-size: 15px; font-weight: 600; color: #2a3e58; }
-    .loading-sub { font-size: 13px; color: #8a9ab8; max-width: 340px; line-height: 1.5; }
-    .progress-bar-wrap { width: 100%; max-width: 400px; background: #dce4f0; border-radius: 8px; height: 6px; overflow: hidden; }
-    .progress-bar { height: 100%; background: var(--gold); border-radius: 8px; transition: width .3s; width: 0%; }
-    #streamingPreview { background:#fff; border-radius:8px; padding:14px 18px; margin-top:8px; max-width:680px; width:100%; border:1px solid #dce2ef; font-size:12px; color:#4a5a78; line-height:1.7; max-height:200px; overflow-y:auto; white-space:pre-wrap; font-family:monospace; }
-    .analysis-card { background: #fff; border-radius: 12px; border: 1px solid #d8dde8; padding: 32px 38px; max-width: 960px; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,.05); }
-    .analysis-card h1 { font-size: 22px; font-weight: 800; color: #0f1d30; border-bottom: 2px solid var(--gold); padding-bottom: 10px; margin: 0 0 20px; }
-    .analysis-card h2 { font-size: 16px; font-weight: 700; color: #1a2e4a; margin: 28px 0 10px; padding: 8px 14px; background: #eef2f9; border-left: 4px solid var(--navy); border-radius: 0 6px 6px 0; }
-    .analysis-card h3 { font-size: 14px; font-weight: 700; color: #2d4a6a; margin: 18px 0 8px; }
-    .analysis-card h4 { font-size: 13px; font-weight: 600; color: #4a6080; margin: 14px 0 6px; }
-    .analysis-card p { color: #2a3a50; font-size: 13.5px; line-height: 1.75; margin: 0 0 12px; }
-    .analysis-card ul, .analysis-card ol { padding-left: 22px; margin: 6px 0 14px; }
-    .analysis-card li { color: #2a3a50; font-size: 13.5px; line-height: 1.75; margin-bottom: 4px; }
-    .analysis-card strong { color: #0f1d30; }
-    .analysis-card hr { border: none; border-top: 1px solid #dce2ef; margin: 24px 0; }
-    .analysis-card code { background: #f0f4fa; border-radius: 3px; padding: 1px 5px; font-size: 12px; color: #2d4870; }
-    .risk-high { color: #b91c1c; font-weight: 700; }
-    .risk-medium { color: #92400e; font-weight: 700; }
-    .risk-low { color: #065f46; font-weight: 700; }
-    .risk-info { color: #1e40af; font-weight: 700; }
-    .toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 9999; }
-    .toast { padding: 12px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; box-shadow: 0 4px 16px rgba(0,0,0,.15); animation: slideIn .25s ease; max-width: 340px; }
-    .toast-success { background: #065f46; color: #d1fae5; }
-    .toast-error { background: #7f1d1d; color: #fee2e2; }
-    .toast-info { background: #1e3a5f; color: #dbeafe; }
-    @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: none; opacity: 1; } }
-    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: #b0bdd0; border-radius: 3px; }
-  </style>
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--results-bg);
+  color: var(--results-card-text);
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+#app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+/* HEADER — always dark navy regardless of theme */
+#header {
+  background: #0f1d30;
+  border-bottom: 2px solid #c9a14a;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+#header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 56px;
+}
+
+.header-brand { display: flex; align-items: center; gap: 10px; }
+
+.header-logo {
+  width: 40px; height: 40px;
+  background: #fff;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px rgba(201,161,74,.5);
+}
+
+.header-title { font-size: 17px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+.header-sub { font-size: 10px; color: #7a9ab8; text-transform: uppercase; letter-spacing: 1px; margin-top: 1px; }
+
+.theme-switcher {
+  display: flex;
+  background: #0a1622;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.theme-btn {
+  background: none; border: none;
+  color: #6a8aaa;
+  padding: 6px 10px; cursor: pointer;
+  font-size: 12px; font-family: inherit;
+  transition: all 0.15s; white-space: nowrap;
+}
+.theme-btn:hover { background: #1a2e4a; color: #c8d8ea; }
+.theme-btn.active { background: #1a2e4a; color: #c9a14a; }
+
+/* DISCLAIMER */
+#disclaimer-bar {
+  background: var(--disclaimer-bg);
+  border-bottom: 1px solid var(--disclaimer-border);
+  color: var(--disclaimer-text);
+  font-size: 12px;
+  padding: 8px 20px;
+  display: flex; align-items: flex-start; gap: 10px;
+  flex-shrink: 0;
+}
+#disclaimer-bar.hidden { display: none; }
+.disclaimer-text { flex: 1; line-height: 1.5; }
+.disclaimer-dismiss {
+  background: none;
+  border: 1px solid var(--disclaimer-border);
+  color: var(--disclaimer-text);
+  width: 22px; height: 22px; border-radius: 4px;
+  cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+  opacity: 0.7; transition: opacity 0.15s;
+}
+.disclaimer-dismiss:hover { opacity: 1; }
+
+/* MAIN LAYOUT */
+#main-layout { display: flex; flex: 1; overflow: hidden; }
+
+/* SIDEBAR */
+#sidebar {
+  width: 340px; min-width: 280px;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  display: flex; flex-direction: column;
+  overflow: hidden; flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+#sidebar-scroll {
+  flex: 1; overflow-y: auto;
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+/* RESULTS */
+#results-panel {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden;
+  background: var(--results-bg);
+  transition: background 0.2s;
+}
+
+#results-toolbar {
+  background: var(--results-toolbar-bg);
+  border-bottom: 1px solid var(--results-border);
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+}
+
+.results-title { font-size: 13px; font-weight: 600; color: var(--results-card-text); flex: 1; }
+#status-text { font-size: 12px; color: var(--results-card-text); opacity: 0.7; }
+#results-scroll { flex: 1; overflow-y: auto; padding: 20px; }
+
+/* ============================================================
+   SECTION CARDS
+   ============================================================ */
+.section-card {
+  background: var(--sidebar-section-bg);
+  border: 1px solid var(--sidebar-border);
+  border-radius: 10px; overflow: hidden;
+  transition: background 0.2s;
+}
+
+.section-header {
+  padding: 10px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; user-select: none;
+}
+.section-header:hover { background: rgba(201,161,74,0.06); }
+.section-header-left { display: flex; align-items: center; gap: 8px; }
+.section-icon { font-size: 15px; width: 22px; text-align: center; }
+.section-title {
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.9px;
+  color: var(--gold);
+}
+.section-badge {
+  background: var(--badge-bg); color: var(--badge-text);
+  font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600;
+}
+.section-badge.req { background: rgba(220,38,38,0.15); color: #f87171; }
+.section-chevron { color: var(--sidebar-label); font-size: 10px; transition: transform 0.2s; }
+.section-chevron.open { transform: rotate(180deg); }
+.section-body { padding: 0 14px 14px; display: none; }
+.section-body.open { display: block; }
+
+/* ============================================================
+   FORMS
+   ============================================================ */
+label {
+  display: block; font-size: 11px; font-weight: 600;
+  color: var(--sidebar-label);
+  text-transform: uppercase; letter-spacing: 0.6px;
+  margin-bottom: 5px; margin-top: 10px;
+}
+label:first-child { margin-top: 0; }
+
+input[type="text"],
+input[type="password"],
+input[type="url"],
+select,
+textarea {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 7px;
+  color: var(--input-text);
+  font-size: 13px; padding: 8px 10px;
+  outline: none; font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="url"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(201,161,74,0.15);
+}
+input::placeholder, textarea::placeholder { color: var(--input-placeholder); }
+select option { background: var(--input-bg); color: var(--input-text); }
+textarea { resize: vertical; min-height: 80px; }
+
+.hint-text { font-size: 11px; color: var(--sidebar-label); margin-top: 5px; line-height: 1.5; }
+.hint-text a { color: var(--gold); text-decoration: none; }
+.hint-text a:hover { text-decoration: underline; }
+code.inline {
+  font-family: 'Courier New', monospace; font-size: 11px;
+  background: var(--badge-bg); color: var(--gold);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+/* SEGMENTED CONTROLS */
+.segmented-control {
+  display: flex;
+  background: var(--toggle-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 8px; overflow: hidden;
+}
+.segmented-btn {
+  flex: 1; background: none; border: none;
+  color: var(--toggle-text);
+  padding: 7px 6px; cursor: pointer;
+  font-size: 12px; font-weight: 500;
+  transition: all 0.15s; text-align: center;
+  font-family: inherit;
+}
+.segmented-btn:hover { background: rgba(201,161,74,0.1); color: var(--gold); }
+.segmented-btn.active { background: var(--toggle-active-bg); color: var(--toggle-active-text); font-weight: 600; }
+
+/* ============================================================
+   DROP ZONES
+   ============================================================ */
+.drop-zone {
+  border: 2px dashed var(--dropzone-border);
+  border-radius: 8px; padding: 14px 12px;
+  text-align: center; cursor: pointer;
+  transition: all 0.15s;
+  background: var(--dropzone-bg);
+  position: relative;
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--gold);
+  background: rgba(201,161,74,0.06);
+}
+.drop-zone input[type="file"] {
+  position: absolute; inset: 0; opacity: 0;
+  cursor: pointer; width: 100%; height: 100%;
+}
+.drop-zone-icon { font-size: 22px; display: block; margin-bottom: 4px; }
+.drop-zone-text { font-size: 12px; color: var(--dropzone-text); }
+.drop-zone-text strong { color: var(--gold); }
+.drop-zone-hint { font-size: 11px; color: var(--input-placeholder); margin-top: 2px; }
+
+/* FILE LIST */
+.file-list { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.file-item {
+  background: var(--file-item-bg);
+  border: 1px solid var(--sidebar-border);
+  border-radius: 6px; padding: 6px 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.file-item-icon { font-size: 14px; flex-shrink: 0; }
+.file-item-name {
+  flex: 1; font-size: 12px; color: var(--file-item-text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  cursor: pointer;
+}
+.file-item-name:hover { color: var(--gold); }
+.file-name-input {
+  flex: 1;
+  background: var(--input-bg);
+  border: 1px solid var(--gold);
+  border-radius: 4px; color: var(--input-text);
+  font-size: 12px; padding: 2px 6px; outline: none;
+}
+.file-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.file-action-btn {
+  background: none; border: none;
+  color: var(--sidebar-label);
+  cursor: pointer; font-size: 13px;
+  padding: 2px 4px; border-radius: 3px;
+  transition: all 0.12s; line-height: 1;
+}
+.file-action-btn:hover { background: rgba(201,161,74,0.15); color: var(--gold); }
+.file-action-btn.delete:hover { background: rgba(220,38,38,0.15); color: #f87171; }
+
+.file-processing {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--sidebar-label); margin-top: 4px;
+}
+.spinner-sm {
+  width: 12px; height: 12px;
+  border: 2px solid var(--input-border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+.bulk-actions { display: flex; justify-content: flex-end; margin-top: 6px; }
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  border: none; border-radius: 7px; cursor: pointer;
+  font-size: 12px; font-weight: 600; padding: 7px 14px;
+  transition: all 0.15s;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: inherit;
+}
+.btn-primary { background: var(--gold); color: #0f1d30; }
+.btn-primary:hover { background: var(--gold-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(201,161,74,0.3); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-secondary { background: var(--btn-secondary-bg); color: var(--btn-secondary-text); border: 1px solid var(--sidebar-border); }
+.btn-secondary:hover { background: var(--btn-secondary-hover); }
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+.btn-danger { background: rgba(220,38,38,0.15); color: #f87171; border: 1px solid rgba(220,38,38,0.3); }
+.btn-danger:hover { background: rgba(220,38,38,0.25); }
+
+#analyze-container {
+  padding: 14px;
+  border-top: 1px solid var(--sidebar-border);
+  flex-shrink: 0;
+  background: var(--sidebar-bg);
+  transition: background 0.2s;
+}
+#analyze-btn { width: 100%; padding: 12px; font-size: 14px; border-radius: 9px; }
+
+/* ============================================================
+   RESULTS STATES
+   ============================================================ */
+#results-empty {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 100%; text-align: center;
+  padding: 40px 20px; gap: 12px;
+}
+.empty-icon { width: 80px; height: 80px; opacity: 0.35; }
+.empty-title { font-size: 18px; font-weight: 600; color: var(--results-card-text); opacity: 0.5; }
+.empty-desc { font-size: 13px; color: var(--results-card-text); opacity: 0.35; max-width: 420px; line-height: 1.7; }
+
+#results-loading {
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px 20px; gap: 16px;
+}
+.spinner-lg {
+  width: 40px; height: 40px;
+  border: 3px solid var(--results-border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.loading-title { font-size: 15px; font-weight: 600; color: var(--results-card-text); }
+.loading-sub { font-size: 12px; color: var(--results-card-text); opacity: 0.6; }
+.progress-bar-wrap {
+  width: 100%; max-width: 400px;
+  background: var(--results-border);
+  border-radius: 4px; height: 4px; overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), #e8b85c);
+  border-radius: 4px;
+  animation: progress-pulse 2s ease-in-out infinite;
+  width: 65%;
+}
+@keyframes progress-pulse { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
+
+#streaming-preview {
+  width: 100%; max-width: 800px;
+  background: var(--results-card-bg);
+  border: 1px solid var(--results-border);
+  border-radius: 8px; padding: 14px 16px;
+  font-size: 11px; color: var(--results-card-text); opacity: 0.7;
+  max-height: 200px; overflow-y: auto;
+  white-space: pre-wrap;
+  font-family: 'Courier New', monospace;
+}
+
+#results-content { display: none; }
+
+.result-card {
+  background: var(--results-card-bg);
+  border: 1px solid var(--results-border);
+  border-radius: 10px; padding: 24px 28px;
+  line-height: 1.75; color: var(--results-card-text);
+}
+
+/* Markdown styles */
+.result-card h1 {
+  font-size: 22px; font-weight: 700; color: var(--gold);
+  margin-bottom: 8px; padding-bottom: 10px;
+  border-bottom: 2px solid var(--results-border);
+}
+.result-card h2 {
+  font-size: 15px; font-weight: 700; color: var(--results-card-text);
+  margin-top: 28px; margin-bottom: 10px;
+  padding: 8px 12px;
+  background: rgba(201,161,74,0.08);
+  border-left: 3px solid var(--gold);
+  border-radius: 0 6px 6px 0;
+}
+.result-card h3 { font-size: 14px; font-weight: 700; color: var(--results-card-text); margin-top: 18px; margin-bottom: 8px; }
+.result-card h4 { font-size: 13px; font-weight: 700; margin-top: 14px; margin-bottom: 6px; }
+.result-card p { margin-bottom: 10px; }
+.result-card ul, .result-card ol { padding-left: 20px; margin-bottom: 12px; }
+.result-card li { margin-bottom: 6px; }
+.result-card strong { color: var(--gold); font-weight: 600; }
+.result-card hr { border: none; border-top: 1px solid var(--results-border); margin: 20px 0; }
+.result-card code {
+  font-family: 'Courier New', monospace; font-size: 12px;
+  background: var(--badge-bg); padding: 2px 5px; border-radius: 3px; color: var(--gold);
+}
+.result-card blockquote { border-left: 3px solid var(--results-border); padding-left: 14px; margin: 10px 0; opacity: 0.8; }
+.result-card table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13px; }
+.result-card th {
+  background: rgba(201,161,74,0.12); color: var(--gold);
+  padding: 8px 12px; text-align: left; font-weight: 600;
+  border: 1px solid var(--results-border);
+}
+.result-card td { padding: 7px 12px; border: 1px solid var(--results-border); }
+.result-card tr:nth-child(even) td { background: rgba(0,0,0,0.04); }
+
+/* Risk label badges */
+.risk-high, .risk-med, .risk-low, .risk-info {
+  display: inline-block;
+  padding: 3px 10px; border-radius: 5px;
+  font-weight: 700; font-size: 12px;
+  margin: 6px 0 4px;
+}
+.risk-high { background: var(--risk-high-bg); border: 1px solid var(--risk-high-border); color: var(--risk-high-text); }
+.risk-med  { background: var(--risk-med-bg);  border: 1px solid var(--risk-med-border);  color: var(--risk-med-text); }
+.risk-low  { background: var(--risk-low-bg);  border: 1px solid var(--risk-low-border);  color: var(--risk-low-text); }
+.risk-info { background: var(--risk-info-bg); border: 1px solid var(--risk-info-border); color: var(--risk-info-text); }
+
+/* STATUS DOT */
+.status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.status-dot.idle { background: var(--sidebar-label); }
+.status-dot.running { background: var(--gold); animation: pulse 1.2s ease-in-out infinite; }
+.status-dot.done { background: #4ade80; }
+.status-dot.error { background: #f87171; }
+@keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+
+/* UTILS */
+@keyframes spin { to { transform: rotate(360deg); } }
+.hidden { display: none !important; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--gold); outline-offset: 2px;
+}
+
+@media print {
+  #sidebar, #header, #disclaimer-bar, #results-toolbar { display: none !important; }
+  #results-panel { overflow: visible; }
+  #results-scroll { overflow: visible; padding: 0; }
+  .result-card { border: none; padding: 0; }
+  body { background: white; color: black; }
+}
+</style>
 </head>
 <body>
+<div id="app">
 
-<header>
-  <div class="header-brand">
-    <div class="header-icon">⚖️</div>
-    <div>
-      <div class="header-title">ALTA Survey Analyzer</div>
-      <div class="header-sub">Professional Real Estate Legal Analysis</div>
+  <!-- HEADER — always dark navy -->
+  <header id="header">
+    <div id="header-inner">
+      <div class="header-brand">
+        <div class="header-logo">
+          <!-- Pug in glasses SVG -->
+          <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="40" height="40">
+            <!-- Floppy ears (behind head) -->
+            <ellipse cx="8" cy="20" rx="7" ry="9" fill="#7a4e28"/>
+            <ellipse cx="32" cy="20" rx="7" ry="9" fill="#7a4e28"/>
+            <!-- Head -->
+            <ellipse cx="20" cy="22" rx="14" ry="13" fill="#d4a46a"/>
+            <!-- Forehead wrinkle -->
+            <path d="M13 15 Q17 11 20 13.5 Q23 11 27 15" stroke="#b07838" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+            <!-- Dark muzzle -->
+            <ellipse cx="20" cy="28" rx="9" ry="7" fill="#8a5c30"/>
+            <!-- Eye whites -->
+            <circle cx="14" cy="21" r="5" fill="#fff"/>
+            <circle cx="26" cy="21" r="5" fill="#fff"/>
+            <!-- Pupils -->
+            <circle cx="14.6" cy="21.6" r="3" fill="#150a00"/>
+            <circle cx="26.6" cy="21.6" r="3" fill="#150a00"/>
+            <!-- Eye shine -->
+            <circle cx="15.5" cy="20.4" r="1.1" fill="#fff"/>
+            <circle cx="27.5" cy="20.4" r="1.1" fill="#fff"/>
+            <!-- Glasses frames -->
+            <circle cx="14" cy="21" r="5.8" fill="none" stroke="#2a1a00" stroke-width="2"/>
+            <circle cx="26" cy="21" r="5.8" fill="none" stroke="#2a1a00" stroke-width="2"/>
+            <!-- Glasses bridge -->
+            <line x1="19.8" y1="21" x2="20.2" y2="21" stroke="#2a1a00" stroke-width="2" stroke-linecap="round"/>
+            <!-- Glasses arms -->
+            <line x1="8.2" y1="19" x2="5.5" y2="17.5" stroke="#2a1a00" stroke-width="1.8" stroke-linecap="round"/>
+            <line x1="31.8" y1="19" x2="34.5" y2="17.5" stroke="#2a1a00" stroke-width="1.8" stroke-linecap="round"/>
+            <!-- Nose -->
+            <ellipse cx="20" cy="28" rx="4" ry="2.8" fill="#200e00"/>
+            <!-- Nostrils -->
+            <ellipse cx="17.8" cy="28.6" rx="1.3" ry="1" fill="#120500"/>
+            <ellipse cx="22.2" cy="28.6" rx="1.3" ry="1" fill="#120500"/>
+            <!-- Smile -->
+            <path d="M15 32 Q20 36 25 32" stroke="#200e00" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+            <!-- Tongue -->
+            <ellipse cx="20" cy="34.5" rx="2.8" ry="2.2" fill="#e05068"/>
+            <line x1="20" y1="32.5" x2="20" y2="36.5" stroke="#c04058" stroke-width="0.9"/>
+          </svg>
+        </div>
+        <div>
+          <div class="header-title">ALTA Survey Analyzer</div>
+          <div class="header-sub">Professional Real Estate Legal Analysis</div>
+        </div>
+      </div>
+      <div class="theme-switcher">
+        <button class="theme-btn" id="tbtn-light" onclick="setTheme('light')">&#x2600;&#xFE0F; Light</button>
+        <button class="theme-btn active" id="tbtn-system" onclick="setTheme('system')">&#x1F4BB; System</button>
+        <button class="theme-btn" id="tbtn-night" onclick="setTheme('night')">&#x1F319; Night</button>
+      </div>
     </div>
+  </header>
+
+  <!-- DISCLAIMER -->
+  <div id="disclaimer-bar">
+    <div class="disclaimer-text">
+      &#x26A0;&#xFE0F; <strong>AI Legal Tool Disclaimer:</strong> This analysis is generated by artificial intelligence and is not legal advice. It does not substitute for review by a licensed real estate attorney. Always consult qualified legal counsel before making decisions based on this output.
+    </div>
+    <button class="disclaimer-dismiss" onclick="dismissDisclaimer()" title="Dismiss">&#xD7;</button>
   </div>
-  <div class="header-badge">ATTORNEY-GRADE REVIEW ENGINE</div>
-</header>
 
-<div class="main-layout">
-  <aside>
-    <div class="sidebar-scroll">
+  <!-- LAYOUT -->
+  <div id="main-layout">
 
-      <!-- API Key -->
-      <div class="api-key-section">
-        <div class="api-key-label">🔑 Anthropic API Key</div>
-        <input type="password" id="apiKeyInput" class="api-key-input"
-               placeholder="sk-ant-api03-..."
-               oninput="saveApiKey(this.value)" />
-        <div class="api-key-hint">Your key is stored in this browser only and never sent anywhere except directly to Anthropic.</div>
-        <div class="api-key-ok" id="apiKeyOk">✓ API key saved</div>
-      </div>
+    <!-- SIDEBAR -->
+    <aside id="sidebar">
+      <div id="sidebar-scroll">
 
-      <!-- ALTA Survey -->
-      <div class="upload-section">
-        <div class="section-header" onclick="toggleSection('alta')">
-          <div class="section-label">
-            <span class="section-dot dot-blue"></span>
-            ALTA Survey
-            <span style="color:#4a6a8a;font-size:11px;font-weight:400;">(required)</span>
+        <!-- AI BACKEND -->
+        <div class="section-card">
+          <div class="section-header" onclick="toggleSection('backend')">
+            <div class="section-header-left">
+              <span class="section-icon">&#x2699;&#xFE0F;</span>
+              <span class="section-title">AI Backend</span>
+            </div>
+            <span class="section-chevron open" id="chev-backend">&#x25BC;</span>
           </div>
-          <div class="section-meta">
-            <span class="file-count" id="count-alta_survey">0</span>
-            <span class="chevron open" id="chevron-alta">▼</span>
+          <div class="section-body open" id="body-backend">
+
+            <div class="segmented-control">
+              <button class="segmented-btn active" id="btn-anthropic" onclick="setBackend('anthropic')">&#x1F916; Anthropic API</button>
+              <button class="segmented-btn" id="btn-ollama" onclick="setBackend('ollama')">&#x1F999; Ollama (Local)</button>
+            </div>
+
+            <!-- Anthropic -->
+            <div id="anthropic-fields">
+              <label for="api-key">API Key</label>
+              <input type="password" id="api-key" placeholder="sk-ant-api03-..." autocomplete="off">
+              <div class="hint-text">Generate at <a href="https://platform.claude.com/" target="_blank" rel="noopener">platform.claude.com</a> &mdash; stored in this browser only</div>
+
+              <label for="ant-model">Model</label>
+              <select id="ant-model">
+                <option value="claude-opus-4-6">claude-opus-4-6 &mdash; Best quality</option>
+                <option value="claude-sonnet-4-6">claude-sonnet-4-6 &mdash; Balanced</option>
+                <option value="claude-haiku-4-5-20251001">claude-haiku-4-5-20251001 &mdash; Fastest</option>
+              </select>
+            </div>
+
+            <!-- Ollama -->
+            <div id="ollama-fields" style="display:none">
+              <label for="ollama-ep">Endpoint</label>
+              <input type="url" id="ollama-ep" value="http://localhost:11434/v1/chat/completions">
+
+              <label for="ollama-model">Model</label>
+              <select id="ollama-model" onchange="ollamaModelChange()">
+                <option value="llava:34b">llava:34b &mdash; Best quality</option>
+                <option value="llava:13b">llava:13b &mdash; Balanced</option>
+                <option value="llava:7b">llava:7b &mdash; Fastest</option>
+                <option value="llama3.2-vision:11b">llama3.2-vision:11b &mdash; Meta vision</option>
+                <option value="minicpm-v">minicpm-v &mdash; Compact</option>
+                <option value="custom">Custom&hellip;</option>
+              </select>
+              <div id="ollama-custom-wrap" class="hidden" style="margin-top:6px">
+                <input type="text" id="ollama-custom" placeholder="Enter custom model name">
+              </div>
+              <div class="hint-text" style="margin-top:8px">Run <code class="inline">ollama pull llava:34b</code> to download</div>
+              <div class="hint-text" style="margin-top:6px">&#x26A0;&#xFE0F; Ollama must be running locally. Vision models required for survey images.</div>
+            </div>
+
           </div>
         </div>
-        <div class="section-body open" id="body-alta">
-          <div class="drop-zone" id="drop-alta_survey"
-               onclick="triggerUpload('alta_survey')"
-               ondragover="handleDragOver(event,'alta_survey')"
-               ondragleave="handleDragLeave('alta_survey')"
-               ondrop="handleDrop(event,'alta_survey')">
-            <div style="font-size:24px;margin-bottom:6px;">📐</div>
-            <div class="drop-zone-text"><strong>Drop survey here</strong> or click to browse<br/>PDF, PNG, JPG accepted</div>
+
+        <!-- ALTA SURVEY -->
+        <div class="section-card">
+          <div class="section-header" onclick="toggleSection('survey')">
+            <div class="section-header-left">
+              <span class="section-icon">&#x1F5FA;&#xFE0F;</span>
+              <span class="section-title">ALTA Survey</span>
+              <span class="section-badge req">Required</span>
+            </div>
+            <span class="section-chevron open" id="chev-survey">&#x25BC;</span>
           </div>
-          <div class="file-list" id="list-alta_survey"></div>
-          <div class="bulk-bar" id="bulk-alta_survey" style="display:none;">
-            <button class="bulk-btn bulk-btn-danger" id="del-sel-alta_survey" onclick="deleteSelected('alta_survey')" disabled>🗑 Delete Selected</button>
-            <button class="bulk-btn bulk-btn-secondary" onclick="selectAll('alta_survey')">Select All</button>
+          <div class="section-body open" id="body-survey">
+            <div class="drop-zone" id="dz-survey"
+              ondragover="dzOver(event,'survey')" ondragleave="dzLeave(event,'survey')" ondrop="dzDrop(event,'survey')">
+              <input type="file" accept=".pdf,.png,.jpg,.jpeg,.tiff" multiple onchange="addFiles(event,'survey')">
+              <span class="drop-zone-icon">&#x1F4CB;</span>
+              <div class="drop-zone-text"><strong>Click to browse</strong> or drag &amp; drop</div>
+              <div class="drop-zone-hint">PDF (rendered as images up to 15 pages), PNG, JPG, JPEG, TIFF</div>
+            </div>
+            <div class="file-list" id="flist-survey"></div>
+            <div id="proc-survey" class="file-processing hidden"><div class="spinner-sm"></div><span>Processing&hellip;</span></div>
+            <div class="bulk-actions" id="bulk-survey" style="display:none">
+              <button class="btn btn-sm btn-danger" onclick="clearZone('survey')">&#x1F5D1; Clear All</button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Title Commitment -->
-      <div class="upload-section">
-        <div class="section-header" onclick="toggleSection('commit')">
-          <div class="section-label">
-            <span class="section-dot dot-green"></span>
-            Title Commitment
+        <!-- TITLE COMMITMENT -->
+        <div class="section-card">
+          <div class="section-header" onclick="toggleSection('commitment')">
+            <div class="section-header-left">
+              <span class="section-icon">&#x1F4DC;</span>
+              <span class="section-title">Title Commitment</span>
+              <span class="section-badge">Optional</span>
+            </div>
+            <span class="section-chevron open" id="chev-commitment">&#x25BC;</span>
           </div>
-          <div class="section-meta">
-            <span class="file-count" id="count-title_commitment">0</span>
-            <span class="chevron open" id="chevron-commit">▼</span>
+          <div class="section-body open" id="body-commitment">
+            <div class="drop-zone" id="dz-commitment"
+              ondragover="dzOver(event,'commitment')" ondragleave="dzLeave(event,'commitment')" ondrop="dzDrop(event,'commitment')">
+              <input type="file" accept=".pdf,.png,.jpg,.jpeg,.tiff" multiple onchange="addFiles(event,'commitment')">
+              <span class="drop-zone-icon">&#x1F4C4;</span>
+              <div class="drop-zone-text"><strong>Click to browse</strong> or drag &amp; drop</div>
+              <div class="drop-zone-hint">PDF, PNG, JPG, JPEG, TIFF</div>
+            </div>
+            <div class="file-list" id="flist-commitment"></div>
+            <div id="proc-commitment" class="file-processing hidden"><div class="spinner-sm"></div><span>Processing&hellip;</span></div>
+            <div class="bulk-actions" id="bulk-commitment" style="display:none">
+              <button class="btn btn-sm btn-danger" onclick="clearZone('commitment')">&#x1F5D1; Clear All</button>
+            </div>
           </div>
         </div>
-        <div class="section-body open" id="body-commit">
-          <div class="drop-zone" id="drop-title_commitment"
-               onclick="triggerUpload('title_commitment')"
-               ondragover="handleDragOver(event,'title_commitment')"
-               ondragleave="handleDragLeave('title_commitment')"
-               ondrop="handleDrop(event,'title_commitment')">
-            <div style="font-size:24px;margin-bottom:6px;">📋</div>
-            <div class="drop-zone-text"><strong>Drop commitment here</strong> or click to browse<br/>Schedule A, B-I, B-II</div>
-          </div>
-          <div class="file-list" id="list-title_commitment"></div>
-          <div class="bulk-bar" id="bulk-title_commitment" style="display:none;">
-            <button class="bulk-btn bulk-btn-danger" id="del-sel-title_commitment" onclick="deleteSelected('title_commitment')" disabled>🗑 Delete Selected</button>
-            <button class="bulk-btn bulk-btn-secondary" onclick="selectAll('title_commitment')">Select All</button>
-          </div>
-        </div>
-      </div>
 
-      <!-- Title Documents -->
-      <div class="upload-section">
-        <div class="section-header" onclick="toggleSection('docs')">
-          <div class="section-label">
-            <span class="section-dot dot-purple"></span>
-            Title Documents
+        <!-- TITLE DOCUMENTS -->
+        <div class="section-card">
+          <div class="section-header" onclick="toggleSection('docs')">
+            <div class="section-header-left">
+              <span class="section-icon">&#x1F4C1;</span>
+              <span class="section-title">Title Documents</span>
+              <span class="section-badge">Optional</span>
+            </div>
+            <span class="section-chevron open" id="chev-docs">&#x25BC;</span>
           </div>
-          <div class="section-meta">
-            <span class="file-count" id="count-title_document">0</span>
-            <span class="chevron open" id="chevron-docs">▼</span>
+          <div class="section-body open" id="body-docs">
+            <div class="drop-zone" id="dz-docs"
+              ondragover="dzOver(event,'docs')" ondragleave="dzLeave(event,'docs')" ondrop="dzDrop(event,'docs')">
+              <input type="file" accept=".pdf,.png,.jpg,.jpeg,.tiff" multiple onchange="addFiles(event,'docs')">
+              <span class="drop-zone-icon">&#x1F5C2;&#xFE0F;</span>
+              <div class="drop-zone-text"><strong>Click to browse</strong> or drag &amp; drop</div>
+              <div class="drop-zone-hint">PDF, PNG, JPG, JPEG, TIFF</div>
+            </div>
+            <div class="file-list" id="flist-docs"></div>
+            <div id="proc-docs" class="file-processing hidden"><div class="spinner-sm"></div><span>Processing&hellip;</span></div>
+            <div class="bulk-actions" id="bulk-docs" style="display:none">
+              <button class="btn btn-sm btn-danger" onclick="clearZone('docs')">&#x1F5D1; Clear All</button>
+            </div>
           </div>
         </div>
-        <div class="section-body open" id="body-docs">
-          <div class="drop-zone" id="drop-title_document"
-               onclick="triggerUpload('title_document')"
-               ondragover="handleDragOver(event,'title_document')"
-               ondragleave="handleDragLeave('title_document')"
-               ondrop="handleDrop(event,'title_document')">
-            <div style="font-size:24px;margin-bottom:6px;">📄</div>
-            <div class="drop-zone-text"><strong>Drop documents here</strong> or click to browse<br/>Deeds, easements, plats, CC&Rs</div>
+
+        <!-- DEAL NOTES -->
+        <div class="section-card">
+          <div class="section-header" onclick="toggleSection('notes')">
+            <div class="section-header-left">
+              <span class="section-icon">&#x1F4DD;</span>
+              <span class="section-title">Deal Notes</span>
+            </div>
+            <span class="section-chevron" id="chev-notes">&#x25BC;</span>
           </div>
-          <div class="file-list" id="list-title_document"></div>
-          <div class="bulk-bar" id="bulk-title_document" style="display:none;">
-            <button class="bulk-btn bulk-btn-danger" id="del-sel-title_document" onclick="deleteSelected('title_document')" disabled>🗑 Delete Selected</button>
-            <button class="bulk-btn bulk-btn-secondary" onclick="selectAll('title_document')">Select All</button>
+          <div class="section-body" id="body-notes">
+            <textarea id="deal-notes" placeholder="Add deal context, specific concerns, intended use, client notes&hellip;" rows="5"></textarea>
+            <div class="hint-text">Notes are included in the analysis prompt.</div>
           </div>
         </div>
+
+      </div><!-- /sidebar-scroll -->
+
+      <div id="analyze-container">
+        <button class="btn btn-primary" id="analyze-btn" onclick="runAnalysis()">
+          &#x26A1; Run Legal Analysis
+        </button>
+      </div>
+    </aside>
+
+    <!-- RESULTS PANEL -->
+    <main id="results-panel">
+      <div id="results-toolbar">
+        <div class="status-dot idle" id="status-dot"></div>
+        <span class="results-title">Analysis Results</span>
+        <span id="status-text">Ready</span>
+        <button class="btn btn-secondary btn-sm" id="btn-copy" onclick="copyResults()">&#x1F4CB; Copy</button>
+        <button class="btn btn-secondary btn-sm" onclick="window.print()">&#x1F5A8;&#xFE0F; Print</button>
+        <button class="btn btn-secondary btn-sm" onclick="clearResults()">&#x2715; Clear</button>
       </div>
 
-      <!-- Context Notes -->
-      <div class="context-section">
-        <div class="context-label">📝 Context Notes</div>
-        <textarea id="contextNotes" placeholder="Describe the transaction, intended use, known issues, deal structure, or anything else the attorney should know before reviewing…"></textarea>
-      </div>
+      <div id="results-scroll">
+        <!-- Empty -->
+        <div id="results-empty">
+          <div class="empty-icon">
+            <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="80" height="80">
+              <ellipse cx="8" cy="20" rx="7" ry="9" fill="#7a4e28"/>
+              <ellipse cx="32" cy="20" rx="7" ry="9" fill="#7a4e28"/>
+              <ellipse cx="20" cy="22" rx="14" ry="13" fill="#d4a46a"/>
+              <path d="M13 15 Q17 11 20 13.5 Q23 11 27 15" stroke="#b07838" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+              <ellipse cx="20" cy="28" rx="9" ry="7" fill="#8a5c30"/>
+              <circle cx="14" cy="21" r="5" fill="#fff"/>
+              <circle cx="26" cy="21" r="5" fill="#fff"/>
+              <circle cx="14.6" cy="21.6" r="3" fill="#150a00"/>
+              <circle cx="26.6" cy="21.6" r="3" fill="#150a00"/>
+              <circle cx="15.5" cy="20.4" r="1.1" fill="#fff"/>
+              <circle cx="27.5" cy="20.4" r="1.1" fill="#fff"/>
+              <circle cx="14" cy="21" r="5.8" fill="none" stroke="#2a1a00" stroke-width="2"/>
+              <circle cx="26" cy="21" r="5.8" fill="none" stroke="#2a1a00" stroke-width="2"/>
+              <line x1="19.8" y1="21" x2="20.2" y2="21" stroke="#2a1a00" stroke-width="2" stroke-linecap="round"/>
+              <line x1="8.2" y1="19" x2="5.5" y2="17.5" stroke="#2a1a00" stroke-width="1.8" stroke-linecap="round"/>
+              <line x1="31.8" y1="19" x2="34.5" y2="17.5" stroke="#2a1a00" stroke-width="1.8" stroke-linecap="round"/>
+              <ellipse cx="20" cy="28" rx="4" ry="2.8" fill="#200e00"/>
+              <ellipse cx="17.8" cy="28.6" rx="1.3" ry="1" fill="#120500"/>
+              <ellipse cx="22.2" cy="28.6" rx="1.3" ry="1" fill="#120500"/>
+              <path d="M15 32 Q20 36 25 32" stroke="#200e00" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+              <ellipse cx="20" cy="34.5" rx="2.8" ry="2.2" fill="#e05068"/>
+              <line x1="20" y1="32.5" x2="20" y2="36.5" stroke="#c04058" stroke-width="0.9"/>
+            </svg>
+          </div>
+          <div class="empty-title">No Analysis Yet</div>
+          <div class="empty-desc">
+            Upload an ALTA Survey (PDF or image), optionally add a Title Commitment and supporting documents,
+            then click <strong>Run Legal Analysis</strong>.<br><br>
+            The AI produces a comprehensive partner-level survey review memorandum with risk-rated findings,
+            encroachment analysis, easement review, and an executive summary.
+          </div>
+        </div>
 
-    </div>
+        <!-- Loading -->
+        <div id="results-loading">
+          <div class="spinner-lg"></div>
+          <div class="loading-title">Analyzing documents&hellip;</div>
+          <div class="loading-sub" id="loading-sub">Processing files and running AI analysis</div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill"></div></div>
+          <div id="streaming-preview"></div>
+        </div>
 
-    <div class="sidebar-footer">
-      <div class="doc-summary">
-        <span class="doc-pill pill-blue" id="pill-survey">0 Surveys</span>
-        <span class="doc-pill pill-green" id="pill-commit">0 Commitments</span>
-        <span class="doc-pill pill-purple" id="pill-doc">0 Documents</span>
-      </div>
-      <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">
-        <span id="analyzeBtnIcon">⚖️</span>
-        <span id="analyzeBtnText">Run Legal Analysis</span>
-      </button>
-      <button class="clear-all-btn" onclick="clearAllFiles()">Clear All Uploaded Documents</button>
-    </div>
-  </aside>
-
-  <div class="results-panel">
-    <div class="results-toolbar">
-      <div>
-        <div class="results-title">Analysis Results</div>
-        <div class="results-status" id="resultsStatus">No analysis run yet</div>
-      </div>
-      <div class="toolbar-actions">
-        <button class="toolbar-btn" id="copyBtn" onclick="copyAnalysis()" disabled>📋 Copy</button>
-        <button class="toolbar-btn" id="printBtn" onclick="printAnalysis()" disabled>🖨 Print</button>
-        <button class="toolbar-btn" id="clearResultsBtn" onclick="clearResults()" disabled>✕ Clear</button>
-      </div>
-    </div>
-    <div class="results-scroll" id="resultsScroll">
-      <div class="empty-state" id="emptyState">
-        <div class="empty-icon">⚖️</div>
-        <div class="empty-title">ALTA Survey Legal Analysis</div>
-        <div class="empty-desc">Upload your ALTA Survey and related title documents, then click <strong>Run Legal Analysis</strong> for a comprehensive attorney-grade review.</div>
-        <div class="empty-steps">
-          <div class="empty-step"><div class="step-num">1</div><div>Enter your <strong>Anthropic API key</strong> in the sidebar</div></div>
-          <div class="empty-step"><div class="step-num">2</div><div>Upload the <strong>ALTA Survey</strong> (PDF or image) — required</div></div>
-          <div class="empty-step"><div class="step-num">3</div><div>Optionally add a <strong>Title Commitment</strong> for Schedule B cross-reference</div></div>
-          <div class="empty-step"><div class="step-num">4</div><div>Add any <strong>Title Documents</strong> and context notes, then run</div></div>
+        <!-- Content -->
+        <div id="results-content">
+          <div class="result-card" id="result-body"></div>
         </div>
       </div>
-      <div class="loading-state" id="loadingState" style="display:none;">
-        <div class="spinner-ring"></div>
-        <div class="loading-label" id="loadingLabel">Preparing documents…</div>
-        <div class="loading-sub">Our AI attorney is carefully reviewing your ALTA Survey. This may take 1–3 minutes for complex surveys.</div>
-        <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
-        <div id="streamingPreview" style="display:none;"></div>
-      </div>
-      <div id="analysisResult" style="display:none;">
-        <div class="analysis-card" id="analysisCard"></div>
-      </div>
-    </div>
-  </div>
-</div>
+    </main>
 
-<input type="file" id="fileInput" style="display:none;" multiple
-       accept=".pdf,.png,.jpg,.jpeg,.tiff,.tif"
-       onchange="handleFileInputChange(event)" />
-<div class="toast-container" id="toastContainer"></div>
+  </div><!-- /main-layout -->
+</div><!-- /app -->
 
 <script>
-// ─── PDF.js worker ───────────────────────────────────────────────────────────
+/* ============================================================
+   PDF.JS WORKER
+   ============================================================ */
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// ─── Prompts ─────────────────────────────────────────────────────────────────
-const SYSTEM_PROMPT = `You are a senior real estate attorney with 25+ years of practice focused exclusively on commercial real estate transactions. You have personally reviewed thousands of ALTA/NSPS Land Title Surveys and are nationally recognized for the depth and precision of your survey analysis. Your task is to produce a comprehensive, partner-level survey review memorandum. Write as if you are handing this memo directly to a sophisticated client and their deal team on the eve of a significant transaction closing.
+/* ============================================================
+   PROMPTS
+   ============================================================ */
+const SYSTEM_PROMPT = "You are a senior real estate attorney with 25+ years of practice focused exclusively on commercial real estate transactions. You have personally reviewed thousands of ALTA/NSPS Land Title Surveys and are nationally recognized for the depth and precision of your survey analysis. Your task is to produce a comprehensive, partner-level survey review memorandum. Write as if you are handing this memo directly to a sophisticated client and their deal team on the eve of a significant transaction closing.\n\nGuidelines:\n\u2022 Be specific. Cite exact bearings, distances, dimensions, and schedule references visible in the documents. Do not generalize.\n\u2022 Risk-rate every finding using exactly one of these labels on its own line before the finding text: \uD83D\uDD34 HIGH RISK | \uD83D\uDFE1 MEDIUM RISK | \uD83D\uDFE2 LOW RISK | \uD83D\uDD35 INFORMATIONAL\n\u2022 Where the survey or documents are ambiguous or information appears to be missing, say so explicitly and explain the legal consequence of the gap.\n\u2022 Conclude with a plain-English Executive Summary a non-lawyer client can read in 90 seconds.\n\u2022 Format using markdown headers, bold labels, and bullet points for readability.";
 
-Guidelines:
-• Be specific. Cite exact bearings, distances, dimensions, and schedule references visible in the documents. Do not generalize.
-• Risk-rate every finding using exactly one of these labels on its own line before the finding text: 🔴 HIGH RISK | 🟡 MEDIUM RISK | 🟢 LOW RISK | 🔵 INFORMATIONAL
-• Where the survey or documents are ambiguous or information appears to be missing, say so explicitly and explain the legal consequence of the gap.
-• Conclude with a plain-English Executive Summary a non-lawyer client can read in 90 seconds.
-• Format using markdown headers, bold labels, and bullet points for readability.`;
+const ANALYSIS_PROMPT = "Please produce a comprehensive ALTA Survey Analysis Memorandum structured exactly as follows:\n\n---\n\n# ALTA SURVEY ANALYSIS MEMORANDUM\n\n**Prepared by:** AI Legal Analysis Engine (for review and verification by licensed counsel)\n**Document(s) Reviewed:** [list the survey(s) and supporting documents you received]\n**Standards Reference:** ALTA/NSPS Minimum Standard Detail Requirements (most current version)\n\n---\n\n## PART I \u2014 SURVEY CERTIFICATION & STANDARDS COMPLIANCE\n- Surveyor name, license number, firm, and state\n- Date of survey and date of last revision (if any)\n- Parties to whom the survey is certified; confirm all required parties are named\n- Certification language \u2014 confirm it follows the approved ALTA language or flag deviations\n- Table A optional items: list each item number that appears to have been requested; note any items that appear missing or incompletely addressed\n- Overall standards compliance assessment\n\n## PART II \u2014 LEGAL DESCRIPTION ANALYSIS\n- Reproduce or summarize the legal description shown on the survey\n- Cross-reference to the legal description in the title commitment (if provided)\n- Identify any discrepancy, even minor (e.g., acreage rounding, missing call, alternate metes-and-bounds language)\n- Assess gap/overlap risk from any discrepancy found\n- Note whether description is by metes and bounds, lot/block, government survey, or other\n\n## PART III \u2014 BOUNDARY, CLOSURE & ACREAGE\n- Describe the shape and boundary of the parcel\n- Confirm or question closure of the traverse\n- State total area (acres and/or sq ft) as shown on survey\n- Note monuments found vs. set \u2014 assess adequacy\n- Calls to adjoiners \u2014 confirm consistency with record documents\n- Flag any unresolved gaps, overlaps, strips, or gores along the boundary\n\n## PART IV \u2014 ENCROACHMENTS & ENCUMBRANCES\nFor each encroachment or encumbrance plotted or noted:\n  - Describe it specifically (what, where, dimensions if visible)\n  - State direction: does subject property encroach outward, or does something encroach inward?\n  - Rate severity: boundary-line encroachment vs. setback encroachment vs. easement-area encroachment\n  - Cross-reference to Schedule B of title commitment \u2014 is it already excepted?\n  - If NOT already excepted: flag as new exception/objection required\n  - Recommend insurance coverage approach or physical cure\n\n## PART V \u2014 EASEMENT ANALYSIS\nFor each easement plotted or referenced:\n  - Type (utility, access, drainage, pipeline, conservation, etc.)\n  - Location and dimensions relative to the parcel\n  - Proximity to existing improvements and planned development\n  - Beneficial, burdensome, or deal-breaking assessment\n  - Access easement analysis: legal and practical ingress/egress adequacy for intended use\n  - Recommended endorsements (ALTA 28, ALTA 28.1, etc.)\n\n## PART VI \u2014 SETBACK LINE ANALYSIS\n- Identify all setback lines shown (regulatory/zoning vs. plat/deed-restriction)\n- Confirm whether existing improvements comply with each setback\n- Non-conforming structures: flag, assess insurability, analyze rebuilding exposure\n- Development program feasibility: map available building envelope against all setbacks\n\n## PART VII \u2014 ROADS, RIGHTS-OF-WAY & ACCESS\n- Nature of road access (public dedicated/accepted, private, easement-only)\n- Confirm whether the property abuts a publicly dedicated and accepted right-of-way\n- Width of right-of-way and road surface improvements\n- If access is by easement only: confirm it is recorded, runs with the land, and is insurable\n- Adequacy for lender, permitting, and client's operational/development requirements\n\n## PART VIII \u2014 FLOOD ZONE, UTILITIES & OTHER OBSERVATIONS\n- FEMA flood zone designation and FIRM panel number/date (if shown)\n- Utility lines, poles, meters plotted \u2014 any in conflict with improvements or development?\n- Any survey notes or legends that require legal attention\n- Anything else on the face of the survey requiring attorney review\n\n## PART IX \u2014 TITLE COMMITMENT CROSS-REFERENCE\n(Complete this section only if a title commitment was provided)\n- Schedule A: confirm insured amount, effective date, and vesting\n- Schedule B-I (requirements): flag any outstanding requirements affecting survey matters\n- Schedule B-II (exceptions): cross-reference every survey-plotted item to a Schedule B exception; flag any survey matters without a corresponding exception\n- Recommend specific ALTA endorsements: (e.g., ALTA 9, ALTA 17/17.1, ALTA 19, ALTA 25, ALTA 28/28.1, flood endorsements, etc.)\n\n---\n\n## PART X \u2014 ACTION ITEMS (PRIORITIZED)\n\n### \uD83D\uDD34 IMMEDIATE \u2014 Potential Deal Issues or Closing Blockers\n### \uD83D\uDFE1 PRE-CLOSING REQUIREMENTS\n### \uD83D\uDFE2 STANDARD FOLLOW-UP / SELLER CURE ITEMS\n### \uD83D\uDD35 INFORMATIONAL / NO ACTION REQUIRED\n\n---\n\n## EXECUTIVE SUMMARY\n\nWrite 3\u20135 paragraphs in plain English suitable for a sophisticated but non-lawyer client. Cover: overall survey quality, major risks identified, whether the deal appears insurable as surveyed, key items requiring attention before closing, and your overall risk assessment (Low / Moderate / High / Elevated).\n\n---\n\nNow produce the full memorandum based on all documents provided above.";
 
-const ANALYSIS_PROMPT = `Please produce a comprehensive ALTA Survey Analysis Memorandum structured exactly as follows:
+/* ============================================================
+   STATE
+   ============================================================ */
+const S = {
+  backend: 'anthropic',
+  files: { survey: [], commitment: [], docs: [] },
+  busy: false,
+  lastResult: ''
+};
 
----
+/* ============================================================
+   THEME
+   ============================================================ */
+const mql = window.matchMedia('(prefers-color-scheme: dark)');
 
-# ALTA SURVEY ANALYSIS MEMORANDUM
-
-**Prepared by:** AI Legal Analysis Engine (for review and verification by licensed counsel)
-**Document(s) Reviewed:** [list the survey(s) and supporting documents you received]
-**Standards Reference:** ALTA/NSPS Minimum Standard Detail Requirements (most current version)
-
----
-
-## PART I — SURVEY CERTIFICATION & STANDARDS COMPLIANCE
-- Surveyor name, license number, firm, and state
-- Date of survey and date of last revision (if any)
-- Parties to whom the survey is certified; confirm all required parties are named
-- Certification language — confirm it follows the approved ALTA language or flag deviations
-- Table A optional items: list each item number that appears to have been requested; note any items that appear missing or incompletely addressed
-- Overall standards compliance assessment
-
-## PART II — LEGAL DESCRIPTION ANALYSIS
-- Reproduce or summarize the legal description shown on the survey
-- Cross-reference to the legal description in the title commitment (if provided)
-- Identify any discrepancy, even minor (e.g., acreage rounding, missing call, alternate metes-and-bounds language)
-- Assess gap/overlap risk from any discrepancy found
-- Note whether description is by metes and bounds, lot/block, government survey, or other
-
-## PART III — BOUNDARY, CLOSURE & ACREAGE
-- Describe the shape and boundary of the parcel
-- Confirm or question closure of the traverse
-- State total area (acres and/or sq ft) as shown on survey
-- Note monuments found vs. set — assess adequacy
-- Calls to adjoiners — confirm consistency with record documents
-- Flag any unresolved gaps, overlaps, strips, or gores along the boundary
-
-## PART IV — ENCROACHMENTS & ENCUMBRANCES
-For each encroachment or encumbrance plotted or noted:
-  - Describe it specifically (what, where, dimensions if visible)
-  - State direction: does subject property encroach outward, or does something encroach inward?
-  - Rate severity: boundary-line encroachment vs. setback encroachment vs. easement-area encroachment
-  - Cross-reference to Schedule B of title commitment — is it already excepted?
-  - If NOT already excepted: flag as new exception/objection required
-  - Recommend insurance coverage approach or physical cure
-
-## PART V — EASEMENT ANALYSIS
-For each easement plotted or referenced:
-  - Type (utility, access, drainage, pipeline, conservation, etc.)
-  - Location and dimensions relative to the parcel
-  - Proximity to existing improvements and planned development
-  - Beneficial, burdensome, or deal-breaking assessment
-  - Access easement analysis: legal and practical ingress/egress adequacy for intended use
-  - Recommended endorsements (ALTA 28, ALTA 28.1, etc.)
-
-## PART VI — SETBACK LINE ANALYSIS
-- Identify all setback lines shown (regulatory/zoning vs. plat/deed-restriction)
-- Confirm whether existing improvements comply with each setback
-- Non-conforming structures: flag, assess insurability, analyze rebuilding exposure
-- Development program feasibility: map available building envelope against all setbacks
-
-## PART VII — ROADS, RIGHTS-OF-WAY & ACCESS
-- Nature of road access (public dedicated/accepted, private, easement-only)
-- Confirm whether the property abuts a publicly dedicated and accepted right-of-way
-- Width of right-of-way and road surface improvements
-- If access is by easement only: confirm it is recorded, runs with the land, and is insurable
-- Adequacy for lender, permitting, and client's operational/development requirements
-
-## PART VIII — FLOOD ZONE, UTILITIES & OTHER OBSERVATIONS
-- FEMA flood zone designation and FIRM panel number/date (if shown)
-- Utility lines, poles, meters plotted — any in conflict with improvements or development?
-- Any survey notes or legends that require legal attention
-- Anything else on the face of the survey requiring attorney review
-
-## PART IX — TITLE COMMITMENT CROSS-REFERENCE
-(Complete this section only if a title commitment was provided)
-- Schedule A: confirm insured amount, effective date, and vesting
-- Schedule B-I (requirements): flag any outstanding requirements affecting survey matters
-- Schedule B-II (exceptions): cross-reference every survey-plotted item to a Schedule B exception; flag any survey matters without a corresponding exception
-- Recommend specific ALTA endorsements: (e.g., ALTA 9, ALTA 17/17.1, ALTA 19, ALTA 25, ALTA 28/28.1, flood endorsements, etc.)
-
----
-
-## PART X — ACTION ITEMS (PRIORITIZED)
-
-### 🔴 IMMEDIATE — Potential Deal Issues or Closing Blockers
-### 🟡 PRE-CLOSING REQUIREMENTS
-### 🟢 STANDARD FOLLOW-UP / SELLER CURE ITEMS
-### 🔵 INFORMATIONAL / NO ACTION REQUIRED
-
----
-
-## EXECUTIVE SUMMARY
-
-Write 3–5 paragraphs in plain English suitable for a sophisticated but non-lawyer client. Cover: overall survey quality, major risks identified, whether the deal appears insurable as surveyed, key items requiring attention before closing, and your overall risk assessment (Low / Moderate / High / Elevated).
-
----
-
-Now produce the full memorandum based on all documents provided above.`;
-
-// ─── State ────────────────────────────────────────────────────────────────────
-const files = [];           // { id, displayName, type, size, ext, arrayBuffer, base64, mediaType, isImage }
-const selected = { alta_survey: new Set(), title_commitment: new Set(), title_document: new Set() };
-let currentUploadType = '';
-let analyzing = false;
-let analysisText = '';
-let analysisComplete = false;
-const TYPES = ['alta_survey', 'title_commitment', 'title_document'];
-
-// ─── API Key ──────────────────────────────────────────────────────────────────
-function saveApiKey(val) {
-  val = val.trim();
-  if (val) {
-    localStorage.setItem('anthropic_api_key', val);
-    document.getElementById('apiKeyOk').style.display = 'block';
-  } else {
-    localStorage.removeItem('anthropic_api_key');
-    document.getElementById('apiKeyOk').style.display = 'none';
-  }
+function applyTheme(t) {
+  const html = document.documentElement;
+  if (t === 'light') html.classList.add('theme-light');
+  else if (t === 'night') html.classList.remove('theme-light');
+  else mql.matches ? html.classList.remove('theme-light') : html.classList.add('theme-light');
+  ['light','system','night'].forEach(x =>
+    document.getElementById('tbtn-' + x).classList.toggle('active', x === t)
+  );
 }
-function getApiKey() { return localStorage.getItem('anthropic_api_key') || ''; }
 
-// ─── File helpers ─────────────────────────────────────────────────────────────
-function generateId() {
-  return crypto.randomUUID ? crypto.randomUUID() :
-    ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-      (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
-}
-function formatSize(bytes) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
-  return (bytes/(1024*1024)).toFixed(1) + ' MB';
-}
-function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function setTheme(t) { localStorage.setItem('theme', t); applyTheme(t); }
 
-// ─── Read file as ArrayBuffer ─────────────────────────────────────────────────
-function readAsArrayBuffer(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = e => res(e.target.result);
-    r.onerror = rej;
-    r.readAsArrayBuffer(file);
+mql.addEventListener('change', () => {
+  if ((localStorage.getItem('theme') || 'system') === 'system') applyTheme('system');
+});
+
+/* ============================================================
+   DISCLAIMER
+   ============================================================ */
+function dismissDisclaimer() {
+  sessionStorage.setItem('disclaimer_gone', '1');
+  document.getElementById('disclaimer-bar').classList.add('hidden');
+}
+
+/* ============================================================
+   SECTIONS
+   ============================================================ */
+function toggleSection(id) {
+  const b = document.getElementById('body-' + id);
+  const c = document.getElementById('chev-' + id);
+  const open = b.classList.toggle('open');
+  c.classList.toggle('open', open);
+}
+
+/* ============================================================
+   BACKEND
+   ============================================================ */
+function setBackend(b) {
+  S.backend = b;
+  localStorage.setItem('backend', b);
+  document.getElementById('btn-anthropic').classList.toggle('active', b === 'anthropic');
+  document.getElementById('btn-ollama').classList.toggle('active', b === 'ollama');
+  document.getElementById('anthropic-fields').style.display = b === 'anthropic' ? 'block' : 'none';
+  document.getElementById('ollama-fields').style.display = b === 'ollama' ? 'block' : 'none';
+}
+
+function ollamaModelChange() {
+  const v = document.getElementById('ollama-model').value;
+  document.getElementById('ollama-custom-wrap').classList.toggle('hidden', v !== 'custom');
+}
+
+/* ============================================================
+   DROP ZONES
+   ============================================================ */
+function dzOver(e, z) { e.preventDefault(); document.getElementById('dz-' + z).classList.add('drag-over'); }
+function dzLeave(e, z) { document.getElementById('dz-' + z).classList.remove('drag-over'); }
+function dzDrop(e, z) {
+  e.preventDefault();
+  document.getElementById('dz-' + z).classList.remove('drag-over');
+  addFiles({ target: { files: e.dataTransfer.files } }, z);
+}
+
+/* ============================================================
+   FILE MANAGEMENT
+   ============================================================ */
+function addFiles(ev, zone) {
+  const files = Array.from(ev.target.files || []);
+  if (!files.length) return;
+  files.forEach(file => {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['pdf','png','jpg','jpeg','tiff'].includes(ext)) {
+      alert('Unsupported type: ' + file.name + '\nUse PDF, PNG, JPG, JPEG, or TIFF.');
+      return;
+    }
+    const id = Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    S.files[zone].push({ id, name: file.name, ext, data: null, processing: true });
+    renderFiles(zone);
+    processFile(file, ext, zone, id);
   });
+  if (ev.target) ev.target.value = '';
 }
 
-// ─── Read image as base64 ─────────────────────────────────────────────────────
-function readImageAsBase64(file) {
+async function processFile(file, ext, zone, id) {
+  showProc(zone, true);
+  try {
+    let data;
+    if (ext === 'pdf') {
+      data = (zone === 'survey') ? await surveyPdf(file) : await textPdf(file, zone === 'commitment' ? 80000 : 30000);
+    } else {
+      data = await imgBase64(file);
+    }
+    patchFile(zone, id, data);
+  } catch(e) {
+    console.error(e);
+    patchFile(zone, id, { error: e.message });
+  }
+  showProc(zone, false);
+}
+
+function patchFile(zone, id, data) {
+  const f = S.files[zone].find(x => x.id === id);
+  if (f) { f.data = data; f.processing = false; }
+  renderFiles(zone);
+}
+
+function showProc(zone, on) {
+  document.getElementById('proc-' + zone).classList.toggle('hidden', !on);
+}
+
+async function surveyPdf(file) {
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const pages = Math.min(pdf.numPages, 15);
+  const images = [];
+  let text = '';
+  for (let i = 1; i <= pages; i++) {
+    const page = await pdf.getPage(i);
+    const vp = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement('canvas');
+    canvas.width = vp.width; canvas.height = vp.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    images.push({ base64: canvas.toDataURL('image/jpeg', 0.85).split(',')[1], mime: 'image/jpeg', page: i });
+    try {
+      const tc = await page.getTextContent();
+      text += '\n[Page ' + i + ']\n' + tc.items.map(x => x.str).join(' ');
+    } catch(e) {}
+  }
+  if (text.length > 60000) text = text.slice(0, 60000) + '\n...[truncated]';
+  return { kind: 'survey-pdf', images, text, total: pdf.numPages };
+}
+
+async function textPdf(file, max) {
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  let text = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    try {
+      const page = await pdf.getPage(i);
+      const tc = await page.getTextContent();
+      text += '\n[Page ' + i + ']\n' + tc.items.map(x => x.str).join(' ');
+    } catch(e) {}
+  }
+  if (text.length > max) text = text.slice(0, max) + '\n...[truncated]';
+  return { kind: 'text', text, total: pdf.numPages };
+}
+
+function imgBase64(file) {
   return new Promise((res, rej) => {
     const r = new FileReader();
-    r.onload = e => {
-      const b64 = e.target.result.split(',')[1];
-      const mt = file.type || 'image/jpeg';
-      res({ base64: b64, mediaType: mt });
-    };
+    r.onload = e => res({ kind: 'image', base64: e.target.result.split(',')[1], mime: file.type || 'image/jpeg' });
     r.onerror = rej;
     r.readAsDataURL(file);
   });
 }
 
-// ─── PDF → images via PDF.js ──────────────────────────────────────────────────
-async function pdfToImages(arrayBuffer, maxPages = 15) {
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const total = pdf.numPages;
-  const count = Math.min(total, maxPages);
-  const results = [];
-  for (let i = 1; i <= count; i++) {
-    const page = await pdf.getPage(i);
-    const baseViewport = page.getViewport({ scale: 1 });
-    const targetWidth = Math.min(baseViewport.width * 1.8, 1800);
-    const scale = targetWidth / baseViewport.width;
-    const viewport = page.getViewport({ scale });
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-    const b64 = canvas.toDataURL('image/jpeg', 0.82).split(',')[1];
-    results.push({ base64: b64, mediaType: 'image/jpeg', pageNum: i });
-  }
-  return { images: results, total };
-}
+/* ============================================================
+   RENDER FILE LIST
+   ============================================================ */
+function renderFiles(zone) {
+  const c = document.getElementById('flist-' + zone);
+  c.innerHTML = '';
+  S.files[zone].forEach(f => {
+    const item = document.createElement('div');
+    item.className = 'file-item';
 
-// ─── PDF → text via PDF.js ───────────────────────────────────────────────────
-async function pdfToText(arrayBuffer, maxChars = 80000) {
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  let text = '';
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    text += content.items.map(item => item.str).join(' ') + '\n\n';
-    if (text.length > maxChars) break;
-  }
-  return text.slice(0, maxChars);
-}
+    const icon = document.createElement('span');
+    icon.className = 'file-item-icon';
+    icon.textContent = ficon(f.ext);
 
-// ─── Upload ───────────────────────────────────────────────────────────────────
-function triggerUpload(type) { currentUploadType = type; document.getElementById('fileInput').value = ''; document.getElementById('fileInput').click(); }
-function handleFileInputChange(e) { [...e.target.files].forEach(f => addFile(f, currentUploadType)); }
-function handleDragOver(e, type) { e.preventDefault(); document.getElementById(`drop-${type}`).classList.add('dragover'); }
-function handleDragLeave(type) { document.getElementById(`drop-${type}`).classList.remove('dragover'); }
-function handleDrop(e, type) { e.preventDefault(); document.getElementById(`drop-${type}`).classList.remove('dragover'); [...e.dataTransfer.files].forEach(f => addFile(f, type)); }
+    const nameEl = document.createElement('span');
+    nameEl.className = 'file-item-name';
+    nameEl.textContent = f.name;
+    nameEl.title = 'Double-click to rename';
+    nameEl.addEventListener('dblclick', () => rename(zone, f.id, item));
 
-async function addFile(file, type) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  const allowed = ['pdf','png','jpg','jpeg','tiff','tif'];
-  if (!allowed.includes(ext)) { showToast(`Unsupported file type: .${ext}`, 'error'); return; }
-  showToast(`Reading ${file.name}…`, 'info');
-  try {
-    const isImage = ext !== 'pdf';
-    const entry = { id: generateId(), displayName: file.name, type, size: file.size, ext, isImage };
-    if (isImage) {
-      const { base64, mediaType } = await readImageAsBase64(file);
-      entry.base64 = base64;
-      entry.mediaType = mediaType;
+    const acts = document.createElement('div');
+    acts.className = 'file-item-actions';
+
+    if (f.processing) {
+      const sp = document.createElement('div'); sp.className = 'spinner-sm';
+      acts.appendChild(sp);
     } else {
-      entry.arrayBuffer = await readAsArrayBuffer(file);
+      const ed = document.createElement('button');
+      ed.className = 'file-action-btn'; ed.title = 'Rename'; ed.innerHTML = '&#x270F;&#xFE0F;';
+      ed.addEventListener('click', () => rename(zone, f.id, item));
+
+      const dl = document.createElement('button');
+      dl.className = 'file-action-btn delete'; dl.title = 'Remove'; dl.textContent = '\xD7';
+      dl.addEventListener('click', () => { S.files[zone] = S.files[zone].filter(x => x.id !== f.id); renderFiles(zone); });
+
+      acts.appendChild(ed); acts.appendChild(dl);
     }
-    files.push(entry);
-    renderAllLists();
-    showToast(`✓ ${file.name} added`, 'success');
-  } catch(e) {
-    showToast(`Failed to read ${file.name}`, 'error');
-  }
+
+    item.appendChild(icon); item.appendChild(nameEl); item.appendChild(acts);
+    c.appendChild(item);
+  });
+
+  document.getElementById('bulk-' + zone).style.display = S.files[zone].length > 1 ? 'flex' : 'none';
 }
 
-// ─── File list rendering ──────────────────────────────────────────────────────
-function renderAllLists() { TYPES.forEach(renderFileList); updateDocSummary(); }
+function ficon(ext) {
+  return ({ pdf: '\uD83D\uDCC4', png: '\uD83D\uDDBC\uFE0F', jpg: '\uD83D\uDDBC\uFE0F', jpeg: '\uD83D\uDDBC\uFE0F', tiff: '\uD83D\uDDBC\uFE0F' })[ext] || '\uD83D\uDCCE';
+}
 
-function renderFileList(type) {
-  const list = document.getElementById(`list-${type}`);
-  const typeFiles = files.filter(f => f.type === type);
-  document.getElementById(`count-${type}`).textContent = typeFiles.length;
-  if (typeFiles.length === 0) { list.innerHTML = ''; document.getElementById(`bulk-${type}`).style.display = 'none'; return; }
-  document.getElementById(`bulk-${type}`).style.display = 'flex';
-  list.innerHTML = typeFiles.map(buildFileItem).join('');
-  typeFiles.forEach(f => {
-    const cb = document.getElementById(`cb-${f.id}`);
-    if (cb) { cb.checked = selected[type].has(f.id); cb.addEventListener('change', () => toggleSelect(f.id, f.type)); }
+function rename(zone, id, itemEl) {
+  const ns = itemEl.querySelector('.file-item-name');
+  const orig = ns.textContent;
+  const inp = document.createElement('input');
+  inp.type = 'text'; inp.className = 'file-name-input'; inp.value = orig;
+  ns.replaceWith(inp); inp.focus(); inp.select();
+  function commit() {
+    const nv = inp.value.trim() || orig;
+    const f = S.files[zone].find(x => x.id === id);
+    if (f) f.name = nv;
+    renderFiles(zone);
+  }
+  inp.addEventListener('blur', commit);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { inp.value = orig; commit(); } });
+}
+
+function clearZone(zone) { S.files[zone] = []; renderFiles(zone); }
+
+/* ============================================================
+   RESULTS UI
+   ============================================================ */
+function showState(st) {
+  document.getElementById('results-empty').style.display   = st === 'empty'   ? 'flex'  : 'none';
+  document.getElementById('results-loading').style.display = st === 'loading' ? 'flex'  : 'none';
+  document.getElementById('results-content').style.display = st === 'content' ? 'block' : 'none';
+}
+
+function setStatus(type, text) {
+  document.getElementById('status-dot').className = 'status-dot ' + type;
+  document.getElementById('status-text').textContent = text;
+}
+
+function clearResults() {
+  S.lastResult = '';
+  showState('empty');
+  setStatus('idle', 'Ready');
+  document.getElementById('streaming-preview').textContent = '';
+}
+
+function copyResults() {
+  if (!S.lastResult) { alert('No results to copy.'); return; }
+  navigator.clipboard.writeText(S.lastResult).then(() => {
+    const b = document.getElementById('btn-copy');
+    const orig = b.innerHTML;
+    b.innerHTML = '\u2705 Copied!';
+    setTimeout(() => { b.innerHTML = orig; }, 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = S.lastResult;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
   });
 }
 
-function buildFileItem(f) {
-  const icon = f.ext === 'pdf' ? '📕' : '🖼';
-  return `<div class="file-item ${selected[f.type].has(f.id) ? 'selected' : ''}" id="item-${f.id}">
-    <input type="checkbox" class="file-cb" id="cb-${f.id}" />
-    <span class="file-icon">${icon}</span>
-    <div class="file-info">
-      <div class="file-name" id="name-${f.id}" title="${esc(f.displayName)}" ondblclick="startRename('${f.id}')">${esc(f.displayName)}</div>
-      <div class="file-size">${formatSize(f.size)}</div>
-    </div>
-    <div class="file-actions">
-      <button class="icon-btn" onclick="startRename('${f.id}')" title="Rename">✏️</button>
-      <button class="icon-btn danger" onclick="deleteFile('${f.id}')" title="Delete">🗑</button>
-    </div>
-  </div>`;
+function renderResult(md) {
+  S.lastResult = md;
+  const card = document.getElementById('result-body');
+  card.innerHTML = marked.parse(md);
+  styleRiskLabels(card);
+  showState('content');
 }
 
-// ─── Selection ────────────────────────────────────────────────────────────────
-function toggleSelect(id, type) {
-  selected[type].has(id) ? selected[type].delete(id) : selected[type].add(id);
-  document.getElementById(`item-${id}`)?.classList.toggle('selected', selected[type].has(id));
-  document.getElementById(`del-sel-${type}`).disabled = selected[type].size === 0;
-}
-function selectAll(type) {
-  const typeFiles = files.filter(f => f.type === type);
-  const allSel = typeFiles.every(f => selected[type].has(f.id));
-  if (allSel) selected[type].clear(); else typeFiles.forEach(f => selected[type].add(f.id));
-  renderFileList(type);
-  document.getElementById(`del-sel-${type}`).disabled = selected[type].size === 0;
-}
-
-// ─── Delete ───────────────────────────────────────────────────────────────────
-function deleteFile(id) {
-  const f = files.find(x => x.id === id);
-  if (!f || !confirm(`Delete "${f.displayName}"?`)) return;
-  const idx = files.indexOf(f);
-  files.splice(idx, 1);
-  selected[f.type].delete(id);
-  renderAllLists();
-  showToast('File removed', 'success');
-}
-function deleteSelected(type) {
-  const ids = [...selected[type]];
-  if (!ids.length || !confirm(`Delete ${ids.length} file(s)?`)) return;
-  ids.forEach(id => { const i = files.findIndex(f => f.id === id); if (i !== -1) files.splice(i, 1); });
-  selected[type].clear();
-  renderAllLists();
-  showToast(`Deleted ${ids.length} file(s)`, 'success');
-}
-function clearAllFiles() {
-  if (!files.length) { showToast('No files to clear', 'info'); return; }
-  if (!confirm(`Remove all ${files.length} file(s)?`)) return;
-  files.length = 0;
-  TYPES.forEach(t => selected[t].clear());
-  renderAllLists();
-  showToast('All files cleared', 'success');
+function styleRiskLabels(root) {
+  const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = []; let n;
+  while ((n = tw.nextNode())) nodes.push(n);
+  nodes.forEach(node => {
+    const t = node.textContent;
+    if (!/\uD83D\uDD34|\uD83D\uDFE1|\uD83D\uDFE2|\uD83D\uDD35/.test(t)) return;
+    const r = t
+      .replace(/\uD83D\uDD34\s*HIGH RISK/g,      '<span class="risk-high">\uD83D\uDD34 HIGH RISK</span>')
+      .replace(/\uD83D\uDFE1\s*MEDIUM RISK/g,     '<span class="risk-med">\uD83D\uDFE1 MEDIUM RISK</span>')
+      .replace(/\uD83D\uDFE2\s*LOW RISK/g,        '<span class="risk-low">\uD83D\uDFE2 LOW RISK</span>')
+      .replace(/\uD83D\uDD35\s*INFORMATIONAL/g,   '<span class="risk-info">\uD83D\uDD35 INFORMATIONAL</span>');
+    if (r !== t) { const sp = document.createElement('span'); sp.innerHTML = r; node.parentNode.replaceChild(sp, node); }
+  });
 }
 
-// ─── Rename ───────────────────────────────────────────────────────────────────
-function startRename(id) {
-  const nameEl = document.getElementById(`name-${id}`);
-  if (!nameEl) return;
-  const orig = nameEl.textContent.trim();
-  const inp = document.createElement('input');
-  inp.className = 'file-name-input'; inp.value = orig;
-  nameEl.replaceWith(inp); inp.focus(); inp.select();
-  const save = () => {
-    const val = inp.value.trim();
-    if (val && val !== orig) { const f = files.find(x => x.id === id); if (f) f.displayName = val; }
-    renderAllLists();
-  };
-  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { inp.blur(); } if (e.key === 'Escape') { inp.value = orig; inp.blur(); } });
-  inp.addEventListener('blur', save);
-}
-
-// ─── Section toggle ───────────────────────────────────────────────────────────
-function toggleSection(key) {
-  document.getElementById(`body-${key}`).classList.toggle('open');
-  document.getElementById(`chevron-${key}`).classList.toggle('open');
-}
-
-// ─── Doc summary pills ────────────────────────────────────────────────────────
-function updateDocSummary() {
-  const s = files.filter(f=>f.type==='alta_survey').length;
-  const c = files.filter(f=>f.type==='title_commitment').length;
-  const d = files.filter(f=>f.type==='title_document').length;
-  document.getElementById('pill-survey').textContent = `${s} Survey${s!==1?'s':''}`;
-  document.getElementById('pill-commit').textContent = `${c} Commitment${c!==1?'s':''}`;
-  document.getElementById('pill-doc').textContent = `${d} Doc${d!==1?'s':''}`;
-}
-
-// ─── Build content array for API ─────────────────────────────────────────────
-async function buildContent(onProgress) {
+/* ============================================================
+   BUILD API CONTENT ARRAY (Anthropic format)
+   ============================================================ */
+function buildContent() {
   const content = [];
-  const surveys = files.filter(f => f.type === 'alta_survey');
-  const commitments = files.filter(f => f.type === 'title_commitment');
-  const docs = files.filter(f => f.type === 'title_document');
-  const total = surveys.length + commitments.length + docs.length;
-  let done = 0;
+  const notes = document.getElementById('deal-notes').value.trim();
 
-  const tick = (label) => { done++; onProgress(label, done / total); };
-
-  for (let i = 0; i < surveys.length; i++) {
-    const s = surveys[i];
-    content.push({ type: 'text', text: `\n${'='.repeat(60)}\nALTA/NSPS LAND TITLE SURVEY #${i+1}: ${s.displayName}\n${'='.repeat(60)}\nExamine every boundary line, note, easement, encroachment, setback, and monument:\n` });
-    if (s.isImage) {
-      content.push({ type: 'image', source: { type: 'base64', media_type: s.mediaType, data: s.base64 } });
-    } else {
-      onProgress(`Rendering survey pages…`, done / total);
-      const { images, total: pages } = await pdfToImages(s.arrayBuffer, 15);
-      content.push({ type: 'text', text: `PDF survey — ${pages} total page(s); ${images.length} rendered:\n` });
-      for (const img of images) {
-        content.push({ type: 'text', text: `[Page ${img.pageNum}]` });
-        content.push({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.base64 } });
+  function addZone(zone, label) {
+    if (!S.files[zone].length) return;
+    content.push({ type: 'text', text: '\n\n--- ' + label + ' (' + S.files[zone].length + ' file(s)) ---\n' });
+    S.files[zone].forEach(f => {
+      content.push({ type: 'text', text: '\nFile: ' + f.name + '\n' });
+      if (!f.data)           { content.push({ type: 'text', text: '[Processing not complete]\n' }); return; }
+      if (f.data.error)      { content.push({ type: 'text', text: '[Error: ' + f.data.error + ']\n' }); return; }
+      if (f.data.kind === 'survey-pdf') {
+        if (f.data.text) content.push({ type: 'text', text: 'Text (' + f.data.total + ' pages, up to 15 rendered):\n' + f.data.text + '\n' });
+        f.data.images.forEach(img => content.push({ type: 'image', source: { type: 'base64', media_type: img.mime, data: img.base64 } }));
+      } else if (f.data.kind === 'text') {
+        content.push({ type: 'text', text: 'Text (' + f.data.total + ' pages):\n' + f.data.text + '\n' });
+      } else if (f.data.kind === 'image') {
+        content.push({ type: 'image', source: { type: 'base64', media_type: f.data.mime, data: f.data.base64 } });
       }
-      const text = await pdfToText(s.arrayBuffer, 60000);
-      if (text.trim()) content.push({ type: 'text', text: `\n[Extracted survey text]\n${text}` });
-    }
-    tick(`Processed survey ${i+1}`);
+    });
   }
 
-  for (let i = 0; i < commitments.length; i++) {
-    const tc = commitments[i];
-    content.push({ type: 'text', text: `\n${'='.repeat(60)}\nTITLE COMMITMENT #${i+1}: ${tc.displayName}\n${'='.repeat(60)}\n` });
-    if (tc.isImage) {
-      content.push({ type: 'image', source: { type: 'base64', media_type: tc.mediaType, data: tc.base64 } });
-    } else {
-      const text = await pdfToText(tc.arrayBuffer, 80000);
-      if (text.trim()) content.push({ type: 'text', text });
-    }
-    tick(`Processed commitment ${i+1}`);
-  }
+  addZone('survey',     'ALTA SURVEY DOCUMENTS');
+  addZone('commitment', 'TITLE COMMITMENT');
+  addZone('docs',       'TITLE DOCUMENTS');
 
-  for (let i = 0; i < docs.length; i++) {
-    const d = docs[i];
-    content.push({ type: 'text', text: `\n${'='.repeat(60)}\nTITLE DOCUMENT #${i+1}: ${d.displayName}\n${'='.repeat(60)}\n` });
-    if (d.isImage) {
-      content.push({ type: 'image', source: { type: 'base64', media_type: d.mediaType, data: d.base64 } });
-    } else {
-      const text = await pdfToText(d.arrayBuffer, 30000);
-      if (text.trim()) content.push({ type: 'text', text });
-    }
-    tick(`Processed document ${i+1}`);
-  }
-
-  const notes = document.getElementById('contextNotes').value.trim();
-  if (notes) content.push({ type: 'text', text: `\n${'='.repeat(60)}\nCLIENT / DEAL TEAM CONTEXT NOTES:\n${'='.repeat(60)}\n${notes}` });
-  content.push({ type: 'text', text: ANALYSIS_PROMPT });
+  if (notes) content.push({ type: 'text', text: '\n\n--- DEAL NOTES ---\n' + notes + '\n' });
+  content.push({ type: 'text', text: '\n\n' + ANALYSIS_PROMPT });
   return content;
 }
 
-// ─── Analysis ─────────────────────────────────────────────────────────────────
-async function runAnalysis() {
-  const apiKey = getApiKey();
-  if (!apiKey) { showToast('Please enter your Anthropic API key first', 'error'); document.getElementById('apiKeyInput').focus(); return; }
-  if (!files.filter(f => f.type === 'alta_survey').length) { showToast('Please upload at least one ALTA Survey first', 'error'); return; }
-  if (analyzing) return;
+/* ============================================================
+   SSE READER
+   ============================================================ */
+async function readSSE(body, onLine) {
+  const reader = body.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split('\n');
+    buf = lines.pop();
+    for (const l of lines) { if (l.trim()) onLine(l); }
+  }
+  if (buf.trim()) onLine(buf);
+}
 
-  analyzing = true; analysisText = ''; analysisComplete = false;
-  setAnalyzeBtn(true); showLoadingState();
+/* ============================================================
+   ANTHROPIC
+   ============================================================ */
+async function callAnthropic(content, onChunk) {
+  const key = document.getElementById('api-key').value.trim();
+  if (!key) throw new Error('Anthropic API key is required. Enter it in the AI Backend section of the sidebar.');
+  const model = document.getElementById('ant-model').value;
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({ model, max_tokens: 8192, system: SYSTEM_PROMPT, messages: [{ role: 'user', content }], stream: true })
+  });
+
+  if (!resp.ok) throw new Error('Anthropic error ' + resp.status + ': ' + await resp.text());
+
+  await readSSE(resp.body, line => {
+    if (!line.startsWith('data: ')) return;
+    const raw = line.slice(6);
+    if (raw === '[DONE]') return;
+    try {
+      const obj = JSON.parse(raw);
+      if (obj.type === 'content_block_delta' && obj.delta?.type === 'text_delta') onChunk(obj.delta.text);
+    } catch(e) {}
+  });
+}
+
+/* ============================================================
+   OLLAMA
+   ============================================================ */
+function toOAI(ac) {
+  return ac.map(item => {
+    if (item.type === 'text') return { type: 'text', text: item.text };
+    if (item.type === 'image') return { type: 'image_url', image_url: { url: 'data:' + item.source.media_type + ';base64,' + item.source.data } };
+    return null;
+  }).filter(Boolean);
+}
+
+async function callOllama(content, onChunk) {
+  const ep = document.getElementById('ollama-ep').value.trim();
+  if (!ep) throw new Error('Ollama endpoint is required.');
+  let model = document.getElementById('ollama-model').value;
+  if (model === 'custom') {
+    model = document.getElementById('ollama-custom').value.trim();
+    if (!model) throw new Error('Custom Ollama model name is required.');
+  }
+
+  const resp = await fetch(ep, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: toOAI(content) }], stream: true })
+  });
+
+  if (!resp.ok) throw new Error('Ollama error ' + resp.status + ': ' + await resp.text());
+
+  await readSSE(resp.body, line => {
+    if (!line.startsWith('data: ')) return;
+    const raw = line.slice(6).trim();
+    if (raw === '[DONE]') return;
+    try {
+      const obj = JSON.parse(raw);
+      const d = obj.choices?.[0]?.delta;
+      if (d?.content) onChunk(d.content);
+    } catch(e) {}
+  });
+}
+
+/* ============================================================
+   RUN ANALYSIS
+   ============================================================ */
+async function runAnalysis() {
+  if (S.busy) return;
+  if (!S.files.survey.length) { alert('Please upload at least one ALTA Survey document first.'); return; }
+  const allFiles = [...S.files.survey, ...S.files.commitment, ...S.files.docs];
+  if (allFiles.some(f => f.processing)) { alert('Files are still processing. Please wait a moment.'); return; }
+
+  S.busy = true;
+  const btn = document.getElementById('analyze-btn');
+  btn.disabled = true;
+  btn.innerHTML = '\u23F3 Analyzing\u2026';
+  setStatus('running', 'Analyzing\u2026');
+  showState('loading');
+  document.getElementById('streaming-preview').textContent = '';
+  document.getElementById('loading-sub').textContent = 'Building document content\u2026';
+
+  let full = '';
 
   try {
-    const content = await buildContent((label, pct) => {
-      document.getElementById('loadingLabel').textContent = label;
-      document.getElementById('progressBar').style.width = (pct * 60) + '%';
-    });
+    const content = buildContent();
+    document.getElementById('loading-sub').textContent = 'Running AI analysis (streaming)\u2026';
 
-    document.getElementById('loadingLabel').textContent = 'Consulting AI attorney…';
-    document.getElementById('progressBar').style.width = '65%';
-    const preview = document.getElementById('streamingPreview');
-    preview.style.display = 'block';
+    const onChunk = chunk => {
+      full += chunk;
+      const prev = document.getElementById('streaming-preview');
+      prev.textContent = full.slice(-800);
+      prev.scrollTop = prev.scrollHeight;
+    };
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-4-6',
-        max_tokens: 8192,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content }],
-        stream: true
-      })
-    });
+    if (S.backend === 'anthropic') await callAnthropic(content, onChunk);
+    else await callOllama(content, onChunk);
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error?.message || `API error ${response.status}`);
-    }
+    if (!full.trim()) throw new Error('No response received from the AI.');
+    renderResult(full);
+    setStatus('done', 'Analysis complete');
+    document.getElementById('results-scroll').scrollTop = 0;
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const raw = line.slice(6).trim();
-        if (!raw || raw === '[DONE]') continue;
-        try {
-          const parsed = JSON.parse(raw);
-          if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
-            analysisText += parsed.delta.text;
-            preview.textContent = analysisText.slice(-1000);
-            preview.scrollTop = preview.scrollHeight;
-            document.getElementById('progressBar').style.width = Math.min(65 + (analysisText.length / 200), 98) + '%';
-          }
-        } catch {}
-      }
-    }
-
-    document.getElementById('progressBar').style.width = '100%';
-    analyzing = false; analysisComplete = true;
-    showAnalysisResult(analysisText);
-    setAnalyzeBtn(false); updateResultsStatus(); enableToolbarBtns(true);
-    showToast('Analysis complete ✓', 'success');
-
-  } catch(e) {
-    analyzing = false;
-    setAnalyzeBtn(false); showEmptyState();
-    showToast(`Analysis failed: ${e.message}`, 'error');
+  } catch(err) {
+    console.error(err);
+    showState('content');
+    document.getElementById('result-body').innerHTML =
+      '<div style="color:var(--risk-high-text);background:var(--risk-high-bg);border:1px solid var(--risk-high-border);border-radius:8px;padding:18px;">' +
+      '<strong>Analysis Failed</strong><br><br>' + escHtml(err.message) + '</div>';
+    setStatus('error', 'Error');
+  } finally {
+    S.busy = false;
+    btn.disabled = false;
+    btn.innerHTML = '\u26A1 Run Legal Analysis';
   }
 }
 
-// ─── UI states ────────────────────────────────────────────────────────────────
-function setAnalyzeBtn(loading) {
-  document.getElementById('analyzeBtn').disabled = loading;
-  document.getElementById('analyzeBtnIcon').textContent = loading ? '⏳' : '⚖️';
-  document.getElementById('analyzeBtnText').textContent = loading ? 'Analyzing…' : 'Run Legal Analysis';
-}
-function showEmptyState() {
-  document.getElementById('emptyState').style.display = 'flex';
-  document.getElementById('loadingState').style.display = 'none';
-  document.getElementById('analysisResult').style.display = 'none';
-}
-function showLoadingState() {
-  document.getElementById('emptyState').style.display = 'none';
-  document.getElementById('loadingState').style.display = 'flex';
-  document.getElementById('analysisResult').style.display = 'none';
-  document.getElementById('streamingPreview').style.display = 'none';
-  document.getElementById('streamingPreview').textContent = '';
-  document.getElementById('progressBar').style.width = '0%';
-  document.getElementById('loadingLabel').textContent = 'Preparing documents…';
-}
-function showAnalysisResult(text) {
-  document.getElementById('emptyState').style.display = 'none';
-  document.getElementById('loadingState').style.display = 'none';
-  const result = document.getElementById('analysisResult');
-  result.style.display = 'block';
-  let html = marked.parse(text, { gfm: true });
-  html = html.replace(/🔴\s*HIGH RISK/g, '<span class="risk-high">🔴 HIGH RISK</span>');
-  html = html.replace(/🟡\s*MEDIUM RISK/g, '<span class="risk-medium">🟡 MEDIUM RISK</span>');
-  html = html.replace(/🟢\s*LOW RISK/g, '<span class="risk-low">🟢 LOW RISK</span>');
-  html = html.replace(/🔵\s*INFORMATIONAL/g, '<span class="risk-info">🔵 INFORMATIONAL</span>');
-  document.getElementById('analysisCard').innerHTML = html;
-  document.getElementById('resultsScroll').scrollTop = 0;
-}
-function clearResults() {
-  analysisText = ''; analysisComplete = false;
-  showEmptyState(); enableToolbarBtns(false); updateResultsStatus();
-}
-function updateResultsStatus() {
-  document.getElementById('resultsStatus').textContent = analysisComplete
-    ? `Analysis completed at ${new Date().toLocaleString()}`
-    : analyzing ? 'Analysis in progress…' : 'No analysis run yet';
-}
-function enableToolbarBtns(on) {
-  ['copyBtn','printBtn','clearResultsBtn'].forEach(id => document.getElementById(id).disabled = !on);
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ─── Toolbar ──────────────────────────────────────────────────────────────────
-function copyAnalysis() {
-  navigator.clipboard.writeText(analysisText)
-    .then(() => showToast('Copied to clipboard', 'success'))
-    .catch(() => showToast('Copy failed', 'error'));
-}
-function printAnalysis() {
-  const win = window.open('', '_blank');
-  let html = marked.parse(analysisText, { gfm: true });
-  html = html.replace(/🔴\s*HIGH RISK/g, '<span style="color:#b91c1c;font-weight:700">🔴 HIGH RISK</span>');
-  html = html.replace(/🟡\s*MEDIUM RISK/g, '<span style="color:#92400e;font-weight:700">🟡 MEDIUM RISK</span>');
-  html = html.replace(/🟢\s*LOW RISK/g, '<span style="color:#065f46;font-weight:700">🟢 LOW RISK</span>');
-  html = html.replace(/🔵\s*INFORMATIONAL/g, '<span style="color:#1e40af;font-weight:700">🔵 INFORMATIONAL</span>');
-  win.document.write(`<html><head><title>ALTA Survey Analysis</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;color:#111;line-height:1.7}h1{border-bottom:2px solid #c9a14a;padding-bottom:8px}h2{background:#eef2f9;padding:8px 12px;border-left:4px solid #1a2e4a;margin-top:28px}@media print{body{margin:20px}}</style></head><body>${html}</body></html>`);
-  win.document.close(); win.print();
-}
+/* ============================================================
+   INIT
+   ============================================================ */
+(function init() {
+  // Theme
+  applyTheme(localStorage.getItem('theme') || 'system');
 
-// ─── Toast ────────────────────────────────────────────────────────────────────
-function showToast(msg, type='info') {
-  const c = document.getElementById('toastContainer');
-  const t = document.createElement('div');
-  t.className = `toast toast-${type}`; t.textContent = msg;
-  c.appendChild(t); setTimeout(() => t.remove(), 3500);
-}
+  // Disclaimer
+  if (sessionStorage.getItem('disclaimer_gone') === '1')
+    document.getElementById('disclaimer-bar').classList.add('hidden');
 
-// ─── Init ─────────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  marked.setOptions({ gfm: true, breaks: false });
-  const saved = getApiKey();
-  if (saved) {
-    document.getElementById('apiKeyInput').value = saved;
-    document.getElementById('apiKeyOk').style.display = 'block';
-  }
-});
+  // Saved API key
+  const k = localStorage.getItem('anthropic_api_key');
+  if (k) document.getElementById('api-key').value = k;
+
+  // Backend
+  setBackend(localStorage.getItem('backend') || 'anthropic');
+
+  // Auto-save API key
+  document.getElementById('api-key').addEventListener('input', function() {
+    if (this.value) localStorage.setItem('anthropic_api_key', this.value);
+  });
+
+  // Marked config
+  marked.setOptions({ breaks: true, gfm: true });
+
+  // Initial state
+  showState('empty');
+})();
 </script>
 </body>
 </html>
