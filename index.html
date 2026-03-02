@@ -618,6 +618,15 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 #app.sidebar-full #results-panel { display: none !important; }
 #app.sidebar-full #sidebar-toggle { border-right: none; }
 
+/* Doc upload zones: 3 columns in full-width, stacked in split */
+#doc-zones { display: flex; flex-direction: column; gap: 12px; }
+#app.sidebar-full #doc-zones { flex-direction: row; align-items: stretch; }
+#app.sidebar-full #doc-zones .section-card { flex: 1; min-width: 0; }
+#app.sidebar-full #doc-zones .drop-zone {
+  min-height: 140px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+
 /* Pre-analysis: hide the toggle entirely (nothing to toggle to) */
 #app.sidebar-pre #sidebar-toggle { display: none; }
 
@@ -803,6 +812,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
           </div>
         </div>
 
+        <div id="doc-zones">
+
         <!-- ALTA SURVEY -->
         <div class="section-card">
           <div class="section-header" onclick="toggleSection('survey')">
@@ -880,6 +891,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
             </div>
           </div>
         </div>
+
+        </div><!-- /doc-zones -->
 
         <!-- DEAL NOTES -->
         <div class="section-card">
