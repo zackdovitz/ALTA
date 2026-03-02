@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ALTA Survey Analyzer — Professional Legal Review</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@11/marked.min.js"></script>
+  <style>
+    :root {
+      --navy: #1a2e4a;
+      --navy-dark: #0f1d30;
+      --navy-light: #243d5e;
+      --gold: #c9a14a;
+      --gold-light: #e4bf7a;
+      --sidebar-width: 380px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #eef1f6;
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--navy-dark);
+      border-bottom: 3px solid var(--gold);
+      padding: 0 24px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .header-brand { display: flex; align-items: center; gap: 12px; }
+    .header-icon {
+      width: 34px; height: 34px;
+      background: var(--gold);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .header-title { color: #fff; font-size: 18px; font-weight: 700; letter-spacing: .3px; }
+    .header-sub { color: #8fa8c4; font-size: 12px; margin-top: 1px; }
+    .header-badge {
+      background: rgba(201,161,74,.15);
+      border: 1px solid rgba(201,161,74,.4);
+      color: var(--gold-light);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      letter-spacing: .5px;
+    }
+
+    /* ── Main layout ── */
+    .main-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    aside {
+      width: var(--sidebar-width);
+      flex-shrink: 0;
+      background: var(--navy);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .sidebar-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .sidebar-scroll::-webkit-scrollbar { width: 5px; }
+    .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: #2d4d6e; border-radius: 3px; }
+
+    /* ── Upload section ── */
+    .upload-section {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .section-header {
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+      transition: background .15s;
+    }
+    .section-header:hover { background: rgba(255,255,255,.04); }
+    .section-label {
+      display: flex; align-items: center; gap: 8px;
+      color: #c8d8ea; font-size: 13px; font-weight: 600; letter-spacing: .3px;
+    }
+    .section-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+    }
+    .dot-blue { background: #60a5fa; }
+    .dot-green { background: #34d399; }
+    .dot-purple { background: #a78bfa; }
+    .section-meta {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .file-count {
+      background: rgba(255,255,255,.12);
+      color: #9bb8d4;
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+    .chevron {
+      color: #5a7a9a;
+      font-size: 12px;
+      transition: transform .2s;
+    }
+    .chevron.open { transform: rotate(180deg); }
+
+    .section-body { display: none; }
+    .section-body.open { display: block; }
+
+    /* Drop zone */
+    .drop-zone {
+      margin: 0 12px 12px;
+      border: 2px dashed rgba(255,255,255,.15);
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--gold);
+      background: rgba(201,161,74,.07);
+    }
+    .drop-zone-text { color: #7a9ab8; font-size: 12px; line-height: 1.5; }
+    .drop-zone-text strong { color: var(--gold-light); }
+
+    /* File list */
+    .file-list { padding: 0 12px 8px; display: flex; flex-direction: column; gap: 4px; }
+
+    .file-item {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 7px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background .15s;
+    }
+    .file-item:hover { background: rgba(255,255,255,.1); }
+    .file-item.selected { background: rgba(201,161,74,.12); border-color: rgba(201,161,74,.3); }
+
+    .file-cb { width: 15px; height: 15px; cursor: pointer; accent-color: var(--gold); flex-shrink: 0; }
+    .file-icon { font-size: 15px; flex-shrink: 0; }
+
+    .file-info { flex: 1; min-width: 0; }
+    .file-name {
+      color: #cde; font-size: 12px; font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      cursor: pointer;
+    }
+    .file-name:hover { color: var(--gold-light); }
+    .file-name-input {
+      background: rgba(255,255,255,.1);
+      border: 1px solid var(--gold);
+      border-radius: 4px;
+      color: #fff;
+      font-size: 12px;
+      padding: 2px 6px;
+      width: 100%;
+      outline: none;
+    }
+    .file-size { color: #5a7a9a; font-size: 11px; }
+
+    .file-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .icon-btn {
+      width: 26px; height: 26px;
+      background: transparent;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      transition: background .15s;
+      color: #7a9ab8;
+    }
+    .icon-btn:hover { background: rgba(255,255,255,.12); color: #cde; }
+    .icon-btn.danger:hover { background: rgba(239,68,68,.15); color: #f87171; }
+
+    /* Bulk actions bar */
+    .bulk-bar {
+      margin: 0 12px 10px;
+      display: flex;
+      gap: 6px;
+    }
+    .bulk-btn {
+      flex: 1;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s;
+    }
+    .bulk-btn:disabled { opacity: .35; cursor: default; }
+    .bulk-btn-danger { background: rgba(239,68,68,.2); color: #f87171; border: 1px solid rgba(239,68,68,.25); }
+    .bulk-btn-danger:not(:disabled):hover { background: rgba(239,68,68,.35); }
+    .bulk-btn-secondary { background: rgba(255,255,255,.08); color: #9bb8d4; border: 1px solid rgba(255,255,255,.1); }
+    .bulk-btn-secondary:not(:disabled):hover { background: rgba(255,255,255,.14); }
+
+    /* ── Context notes ── */
+    .context-section {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .context-label {
+      color: #9bb8d4; font-size: 12px; font-weight: 600;
+      letter-spacing: .3px; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    textarea#contextNotes {
+      width: 100%;
+      height: 110px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 6px;
+      color: #c8d8ea;
+      font-size: 12.5px;
+      line-height: 1.6;
+      padding: 10px;
+      resize: vertical;
+      outline: none;
+      font-family: inherit;
+    }
+    textarea#contextNotes:focus { border-color: var(--gold); }
+    textarea#contextNotes::placeholder { color: #3d5a78; }
+
+    /* ── Sidebar footer ── */
+    .sidebar-footer {
+      padding: 12px 16px;
+      border-top: 1px solid rgba(255,255,255,.07);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .doc-summary {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .doc-pill {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+    .pill-blue { background: rgba(96,165,250,.15); color: #93c5fd; border: 1px solid rgba(96,165,250,.2); }
+    .pill-green { background: rgba(52,211,153,.12); color: #6ee7b7; border: 1px solid rgba(52,211,153,.2); }
+    .pill-purple { background: rgba(167,139,250,.12); color: #c4b5fd; border: 1px solid rgba(167,139,250,.2); }
+
+    .analyze-btn {
+      width: 100%;
+      padding: 13px;
+      background: var(--gold);
+      color: var(--navy-dark);
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: .3px;
+      transition: background .2s, transform .1s;
+    }
+    .analyze-btn:hover:not(:disabled) { background: var(--gold-light); transform: translateY(-1px); }
+    .analyze-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    .clear-all-btn {
+      width: 100%;
+      padding: 7px;
+      background: transparent;
+      color: #5a7a9a;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+    }
+    .clear-all-btn:hover { color: #f87171; border-color: rgba(239,68,68,.3); }
+
+    /* ── Results panel ── */
+    .results-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #f0f2f7;
+    }
+    .results-toolbar {
+      padding: 10px 20px;
+      background: #fff;
+      border-bottom: 1px solid #d8dde8;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .results-title { font-size: 14px; font-weight: 600; color: #1a2e4a; }
+    .results-status { font-size: 12px; color: #7a8eab; }
+    .toolbar-actions { display: flex; gap: 8px; }
+    .toolbar-btn {
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid #c8d0de;
+      background: #fff;
+      color: #4a5a78;
+      transition: background .15s;
+    }
+    .toolbar-btn:hover { background: #f0f2f7; }
+    .toolbar-btn:disabled { opacity: .4; cursor: default; }
+
+    .results-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+    .results-scroll::-webkit-scrollbar { width: 6px; }
+    .results-scroll::-webkit-scrollbar-thumb { background: #c0c8d8; border-radius: 3px; }
+
+    /* Empty state */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 16px;
+      color: #8a9ab8;
+    }
+    .empty-icon { font-size: 56px; opacity: .4; }
+    .empty-title { font-size: 20px; font-weight: 600; color: #4a5a78; }
+    .empty-desc { font-size: 14px; max-width: 420px; text-align: center; line-height: 1.6; }
+    .empty-steps {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px 28px;
+      max-width: 400px;
+      border: 1px solid #dce2ef;
+    }
+    .empty-step {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid #eef1f7;
+      font-size: 13px; color: #5a6a88;
+    }
+    .empty-step:last-child { border-bottom: none; }
+    .step-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--navy); color: #fff;
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+
+    /* Loading state */
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 40px;
+      text-align: center;
+    }
+    .spinner-ring {
+      width: 48px; height: 48px;
+      border: 4px solid #dce4f0;
+      border-top-color: var(--navy);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-label { font-size: 15px; font-weight: 600; color: #2a3e58; }
+    .loading-sub { font-size: 13px; color: #8a9ab8; max-width: 340px; line-height: 1.5; }
+
+    /* Analysis output */
+    .analysis-card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #d8dde8;
+      padding: 32px 38px;
+      max-width: 960px;
+      margin: 0 auto;
+      box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    }
+
+    /* Markdown styles */
+    .analysis-card h1 {
+      font-size: 22px; font-weight: 800; color: #0f1d30;
+      border-bottom: 2px solid var(--gold);
+      padding-bottom: 10px; margin: 0 0 20px;
+    }
+    .analysis-card h2 {
+      font-size: 16px; font-weight: 700; color: #1a2e4a;
+      margin: 28px 0 10px;
+      padding: 8px 14px;
+      background: #eef2f9;
+      border-left: 4px solid var(--navy);
+      border-radius: 0 6px 6px 0;
+    }
+    .analysis-card h3 {
+      font-size: 14px; font-weight: 700; color: #2d4a6a;
+      margin: 18px 0 8px;
+    }
+    .analysis-card h4 {
+      font-size: 13px; font-weight: 600; color: #4a6080;
+      margin: 14px 0 6px;
+    }
+    .analysis-card p { color: #2a3a50; font-size: 13.5px; line-height: 1.75; margin: 0 0 12px; }
+    .analysis-card ul, .analysis-card ol {
+      padding-left: 22px; margin: 6px 0 14px;
+    }
+    .analysis-card li { color: #2a3a50; font-size: 13.5px; line-height: 1.75; margin-bottom: 4px; }
+    .analysis-card strong { color: #0f1d30; }
+    .analysis-card em { color: #4a6080; }
+    .analysis-card hr { border: none; border-top: 1px solid #dce2ef; margin: 24px 0; }
+    .analysis-card code {
+      background: #f0f4fa; border-radius: 3px;
+      padding: 1px 5px; font-size: 12px; color: #2d4870;
+    }
+    .analysis-card blockquote {
+      border-left: 3px solid #c8d0e0;
+      padding-left: 14px; margin: 12px 0;
+      color: #5a6a88;
+    }
+
+    /* Risk level coloring in rendered markdown */
+    .risk-high { color: #b91c1c; font-weight: 700; }
+    .risk-medium { color: #92400e; font-weight: 700; }
+    .risk-low { color: #065f46; font-weight: 700; }
+    .risk-info { color: #1e40af; font-weight: 700; }
+
+    /* Risk callout blocks */
+    .risk-block {
+      padding: 10px 14px;
+      border-radius: 7px;
+      margin: 10px 0;
+      font-size: 13.5px;
+      line-height: 1.6;
+    }
+    .risk-block-high { background: #fef2f2; border: 1px solid #fca5a5; }
+    .risk-block-medium { background: #fffbeb; border: 1px solid #fcd34d; }
+    .risk-block-low { background: #f0fdf4; border: 1px solid #86efac; }
+    .risk-block-info { background: #eff6ff; border: 1px solid #93c5fd; }
+
+    /* Streaming cursor */
+    .cursor-blink {
+      display: inline-block;
+      width: 2px; height: 14px;
+      background: var(--navy);
+      animation: blink .7s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* Toast */
+    .toast-container {
+      position: fixed; bottom: 20px; right: 20px;
+      display: flex; flex-direction: column; gap: 8px;
+      z-index: 9999;
+    }
+    .toast {
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,.15);
+      animation: slideIn .25s ease;
+      max-width: 340px;
+    }
+    .toast-success { background: #065f46; color: #d1fae5; }
+    .toast-error { background: #7f1d1d; color: #fee2e2; }
+    .toast-info { background: #1e3a5f; color: #dbeafe; }
+    @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    /* Scrollbar global */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #b0bdd0; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="header-brand">
+    <div class="header-icon">⚖️</div>
+    <div>
+      <div class="header-title">ALTA Survey Analyzer</div>
+      <div class="header-sub">Professional Real Estate Legal Analysis</div>
+    </div>
+  </div>
+  <div class="header-badge">ATTORNEY-GRADE REVIEW ENGINE</div>
+</header>
+
+<!-- ── Main layout ── -->
+<div class="main-layout">
+
+  <!-- ── Sidebar ── -->
+  <aside>
+    <div class="sidebar-scroll">
+
+      <!-- ALTA Survey section -->
+      <div class="upload-section" id="sec-alta">
+        <div class="section-header" onclick="toggleSection('alta')">
+          <div class="section-label">
+            <span class="section-dot dot-blue"></span>
+            ALTA Survey
+            <span style="color:#4a6a8a;font-size:11px;font-weight:400;">(required)</span>
+          </div>
+          <div class="section-meta">
+            <span class="file-count" id="count-alta_survey">0</span>
+            <span class="chevron open" id="chevron-alta">▼</span>
+          </div>
+        </div>
+        <div class="section-body open" id="body-alta">
+          <div class="drop-zone" id="drop-alta_survey"
+               onclick="triggerUpload('alta_survey')"
+               ondragover="handleDragOver(event,'alta_survey')"
+               ondragleave="handleDragLeave('alta_survey')"
+               ondrop="handleDrop(event,'alta_survey')">
+            <div style="font-size:24px;margin-bottom:6px;">📐</div>
+            <div class="drop-zone-text">
+              <strong>Drop survey here</strong> or click to browse<br/>
+              PDF, PNG, JPG, TIFF accepted
+            </div>
+          </div>
+          <div class="file-list" id="list-alta_survey"></div>
+          <div class="bulk-bar" id="bulk-alta_survey" style="display:none;">
+            <button class="bulk-btn bulk-btn-danger" id="del-sel-alta_survey"
+                    onclick="deleteSelected('alta_survey')" disabled>
+              🗑 Delete Selected
+            </button>
+            <button class="bulk-btn bulk-btn-secondary" onclick="selectAll('alta_survey')">
+              Select All
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Title Commitment section -->
+      <div class="upload-section" id="sec-commit">
+        <div class="section-header" onclick="toggleSection('commit')">
+          <div class="section-label">
+            <span class="section-dot dot-green"></span>
+            Title Commitment
+          </div>
+          <div class="section-meta">
+            <span class="file-count" id="count-title_commitment">0</span>
+            <span class="chevron open" id="chevron-commit">▼</span>
+          </div>
+        </div>
+        <div class="section-body open" id="body-commit">
+          <div class="drop-zone" id="drop-title_commitment"
+               onclick="triggerUpload('title_commitment')"
+               ondragover="handleDragOver(event,'title_commitment')"
+               ondragleave="handleDragLeave('title_commitment')"
+               ondrop="handleDrop(event,'title_commitment')">
+            <div style="font-size:24px;margin-bottom:6px;">📋</div>
+            <div class="drop-zone-text">
+              <strong>Drop commitment here</strong> or click to browse<br/>
+              Schedule A, B-I, B-II
+            </div>
+          </div>
+          <div class="file-list" id="list-title_commitment"></div>
+          <div class="bulk-bar" id="bulk-title_commitment" style="display:none;">
+            <button class="bulk-btn bulk-btn-danger" id="del-sel-title_commitment"
+                    onclick="deleteSelected('title_commitment')" disabled>
+              🗑 Delete Selected
+            </button>
+            <button class="bulk-btn bulk-btn-secondary" onclick="selectAll('title_commitment')">
+              Select All
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Title Documents section -->
+      <div class="upload-section" id="sec-docs">
+        <div class="section-header" onclick="toggleSection('docs')">
+          <div class="section-label">
+            <span class="section-dot dot-purple"></span>
+            Title Documents
+          </div>
+          <div class="section-meta">
+            <span class="file-count" id="count-title_document">0</span>
+            <span class="chevron open" id="chevron-docs">▼</span>
+          </div>
+        </div>
+        <div class="section-body open" id="body-docs">
+          <div class="drop-zone" id="drop-title_document"
+               onclick="triggerUpload('title_document')"
+               ondragover="handleDragOver(event,'title_document')"
+               ondragleave="handleDragLeave('title_document')"
+               ondrop="handleDrop(event,'title_document')">
+            <div style="font-size:24px;margin-bottom:6px;">📄</div>
+            <div class="drop-zone-text">
+              <strong>Drop documents here</strong> or click to browse<br/>
+              Deeds, easements, plats, CC&Rs, etc.
+            </div>
+          </div>
+          <div class="file-list" id="list-title_document"></div>
+          <div class="bulk-bar" id="bulk-title_document" style="display:none;">
+            <button class="bulk-btn bulk-btn-danger" id="del-sel-title_document"
+                    onclick="deleteSelected('title_document')" disabled>
+              🗑 Delete Selected
+            </button>
+            <button class="bulk-btn bulk-btn-secondary" onclick="selectAll('title_document')">
+              Select All
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Context notes -->
+      <div class="context-section">
+        <div class="context-label">
+          📝 Context Notes
+        </div>
+        <textarea id="contextNotes"
+          placeholder="Describe the transaction, intended use, known issues, deal structure, client concerns, or any other context the attorney should know before reviewing…"></textarea>
+      </div>
+
+    </div><!-- end sidebar-scroll -->
+
+    <!-- Sidebar footer -->
+    <div class="sidebar-footer">
+      <div class="doc-summary" id="docSummary">
+        <span class="doc-pill pill-blue" id="pill-survey">0 Survey</span>
+        <span class="doc-pill pill-green" id="pill-commit">0 Commitment</span>
+        <span class="doc-pill pill-purple" id="pill-doc">0 Documents</span>
+      </div>
+      <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">
+        <span id="analyzeBtnIcon">⚖️</span>
+        <span id="analyzeBtnText">Run Legal Analysis</span>
+      </button>
+      <button class="clear-all-btn" onclick="clearAllFiles()">
+        Clear All Uploaded Documents
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Results panel ── -->
+  <div class="results-panel">
+    <div class="results-toolbar">
+      <div>
+        <div class="results-title">Analysis Results</div>
+        <div class="results-status" id="resultsStatus">No analysis run yet</div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="toolbar-btn" id="copyBtn" onclick="copyAnalysis()" disabled>📋 Copy</button>
+        <button class="toolbar-btn" id="printBtn" onclick="printAnalysis()" disabled>🖨 Print</button>
+        <button class="toolbar-btn" id="clearResultsBtn" onclick="clearResults()" disabled>✕ Clear</button>
+      </div>
+    </div>
+
+    <div class="results-scroll" id="resultsScroll">
+      <!-- Empty state -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">⚖️</div>
+        <div class="empty-title">ALTA Survey Legal Analysis</div>
+        <div class="empty-desc">
+          Upload your ALTA Survey and any related title documents, then click
+          <strong>Run Legal Analysis</strong> to receive a comprehensive attorney-grade review.
+        </div>
+        <div class="empty-steps">
+          <div class="empty-step">
+            <div class="step-num">1</div>
+            <div>Upload the <strong>ALTA Survey</strong> (PDF or image) — required</div>
+          </div>
+          <div class="empty-step">
+            <div class="step-num">2</div>
+            <div>Optionally add a <strong>Title Commitment</strong> for Schedule B cross-reference</div>
+          </div>
+          <div class="empty-step">
+            <div class="step-num">3</div>
+            <div>Optionally add <strong>Title Documents</strong> (deeds, easements, plats)</div>
+          </div>
+          <div class="empty-step">
+            <div class="step-num">4</div>
+            <div>Add <strong>Context Notes</strong> about the deal, then run analysis</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading state -->
+      <div class="loading-state" id="loadingState" style="display:none;">
+        <div class="spinner-ring"></div>
+        <div class="loading-label">Analyzing documents…</div>
+        <div class="loading-sub" id="loadingSubText">
+          Our AI attorney is carefully reviewing your ALTA Survey,
+          cross-referencing title exceptions, and identifying issues.
+          This may take 1–3 minutes for complex surveys.
+        </div>
+        <div id="streamingPreview" style="
+          background:#fff; border-radius:8px; padding:14px 18px; margin-top:12px;
+          max-width:680px; width:100%; border:1px solid #dce2ef; font-size:12.5px;
+          color:#4a5a78; line-height:1.7; max-height:220px; overflow-y:auto;
+          white-space:pre-wrap; font-family:monospace; display:none;">
+        </div>
+      </div>
+
+      <!-- Analysis result -->
+      <div id="analysisResult" style="display:none;">
+        <div class="analysis-card" id="analysisCard"></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Hidden file input -->
+<input type="file" id="fileInput" style="display:none;" multiple
+       accept=".pdf,.png,.jpg,.jpeg,.tiff,.tif"
+       onchange="handleFileInputChange(event)"/>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// State
+// ─────────────────────────────────────────────
+let allFiles = [];
+let selected = {};          // { [type]: Set<id> }
+let currentUploadType = '';
+let analyzing = false;
+let analysisText = '';
+let analysisComplete = false;
+
+const TYPES = ['alta_survey', 'title_commitment', 'title_document'];
+TYPES.forEach(t => selected[t] = new Set());
+
+// ─────────────────────────────────────────────
+// File loading & rendering
+// ─────────────────────────────────────────────
+async function loadFiles() {
+  try {
+    const res = await fetch('/api/files');
+    allFiles = await res.json();
+    renderAllLists();
+    updateDocSummary();
+  } catch(e) {
+    showToast('Failed to load file list', 'error');
+  }
+}
+
+function renderAllLists() {
+  TYPES.forEach(renderFileList);
+}
+
+function renderFileList(type) {
+  const container = document.getElementById(`list-${type}`);
+  const files = allFiles.filter(f => f.type === type);
+  const countEl = document.getElementById(`count-${type}`);
+  if (countEl) countEl.textContent = files.length;
+
+  if (files.length === 0) {
+    container.innerHTML = '';
+    hideBulkBar(type);
+    return;
+  }
+
+  showBulkBar(type);
+  container.innerHTML = files.map(f => buildFileItem(f)).join('');
+
+  // Attach event listeners
+  files.forEach(f => {
+    const cb = document.getElementById(`cb-${f.id}`);
+    if (cb) {
+      cb.checked = selected[type].has(f.id);
+      cb.addEventListener('change', () => toggleSelect(f.id, f.type));
+    }
+  });
+}
+
+function buildFileItem(f) {
+  const icon = f.ext === 'pdf' ? '📕' : (f.ext === 'tif' || f.ext === 'tiff') ? '🖼' : '🗂';
+  const size = formatSize(f.size);
+  const isSelected = selected[f.type].has(f.id);
+  return `
+    <div class="file-item ${isSelected ? 'selected' : ''}" id="item-${f.id}">
+      <input type="checkbox" class="file-cb" id="cb-${f.id}" />
+      <span class="file-icon">${icon}</span>
+      <div class="file-info">
+        <div class="file-name" id="name-${f.id}"
+             title="${esc(f.display_name)}"
+             ondblclick="startRename('${f.id}')">
+          ${esc(f.display_name)}
+        </div>
+        <div class="file-size">${size}</div>
+      </div>
+      <div class="file-actions">
+        <button class="icon-btn" onclick="startRename('${f.id}')" title="Rename">✏️</button>
+        <button class="icon-btn danger" onclick="deleteSingle('${f.id}')" title="Delete">🗑</button>
+      </div>
+    </div>`;
+}
+
+// ─────────────────────────────────────────────
+// Selection
+// ─────────────────────────────────────────────
+function toggleSelect(id, type) {
+  if (selected[type].has(id)) {
+    selected[type].delete(id);
+  } else {
+    selected[type].add(id);
+  }
+  // Update item appearance
+  const item = document.getElementById(`item-${id}`);
+  if (item) item.classList.toggle('selected', selected[type].has(id));
+  updateBulkBar(type);
+}
+
+function selectAll(type) {
+  const files = allFiles.filter(f => f.type === type);
+  const allSelected = files.every(f => selected[type].has(f.id));
+  if (allSelected) {
+    selected[type].clear();
+  } else {
+    files.forEach(f => selected[type].add(f.id));
+  }
+  renderFileList(type);
+  updateBulkBar(type);
+}
+
+function updateBulkBar(type) {
+  const btn = document.getElementById(`del-sel-${type}`);
+  if (btn) btn.disabled = selected[type].size === 0;
+}
+
+function showBulkBar(type) {
+  const bar = document.getElementById(`bulk-${type}`);
+  if (bar) bar.style.display = 'flex';
+}
+
+function hideBulkBar(type) {
+  const bar = document.getElementById(`bulk-${type}`);
+  if (bar) bar.style.display = 'none';
+  selected[type].clear();
+}
+
+// ─────────────────────────────────────────────
+// Rename
+// ─────────────────────────────────────────────
+function startRename(id) {
+  const nameEl = document.getElementById(`name-${id}`);
+  if (!nameEl) return;
+  const currentName = nameEl.textContent.trim();
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'file-name-input';
+  input.value = currentName;
+  nameEl.replaceWith(input);
+  input.focus();
+  input.select();
+
+  const save = async () => {
+    const newName = input.value.trim();
+    if (!newName || newName === currentName) {
+      cancelRename(id, currentName);
+      return;
+    }
+    try {
+      const res = await fetch('/api/files/rename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, name: newName })
+      });
+      if (!res.ok) throw new Error('Rename failed');
+      await loadFiles();
+      showToast('File renamed', 'success');
+    } catch(e) {
+      cancelRename(id, currentName);
+      showToast('Rename failed', 'error');
+    }
+  };
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') save();
+    if (e.key === 'Escape') cancelRename(id, currentName);
+  });
+  input.addEventListener('blur', save);
+}
+
+function cancelRename(id, originalName) {
+  const input = document.querySelector(`input.file-name-input`);
+  if (!input) return;
+  const span = document.createElement('div');
+  span.className = 'file-name';
+  span.id = `name-${id}`;
+  span.title = originalName;
+  span.textContent = originalName;
+  span.setAttribute('ondblclick', `startRename('${id}')`);
+  span.addEventListener('dblclick', () => startRename(id));
+  input.replaceWith(span);
+}
+
+// ─────────────────────────────────────────────
+// Delete
+// ─────────────────────────────────────────────
+async function deleteSingle(id) {
+  const file = allFiles.find(f => f.id === id);
+  if (!file) return;
+  if (!confirm(`Delete "${file.display_name}"?`)) return;
+  await deleteIds([id]);
+}
+
+async function deleteSelected(type) {
+  const ids = [...selected[type]];
+  if (ids.length === 0) return;
+  if (!confirm(`Delete ${ids.length} selected file(s)?`)) return;
+  selected[type].clear();
+  await deleteIds(ids);
+}
+
+async function deleteIds(ids) {
+  try {
+    await fetch('/api/files/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids })
+    });
+    await loadFiles();
+    showToast(`Deleted ${ids.length} file(s)`, 'success');
+  } catch(e) {
+    showToast('Delete failed', 'error');
+  }
+}
+
+async function clearAllFiles() {
+  const count = allFiles.length;
+  if (count === 0) { showToast('No files to clear', 'info'); return; }
+  if (!confirm(`Delete all ${count} uploaded file(s)?`)) return;
+  try {
+    await fetch('/api/files/clear-all', { method: 'POST' });
+    TYPES.forEach(t => selected[t].clear());
+    await loadFiles();
+    showToast('All files cleared', 'success');
+  } catch(e) {
+    showToast('Clear failed', 'error');
+  }
+}
+
+// ─────────────────────────────────────────────
+// Upload
+// ─────────────────────────────────────────────
+function triggerUpload(type) {
+  currentUploadType = type;
+  const input = document.getElementById('fileInput');
+  input.value = '';
+  input.click();
+}
+
+function handleFileInputChange(e) {
+  const files = [...e.target.files];
+  files.forEach(f => uploadFile(f, currentUploadType));
+}
+
+function handleDragOver(e, type) {
+  e.preventDefault();
+  document.getElementById(`drop-${type}`).classList.add('dragover');
+}
+function handleDragLeave(type) {
+  document.getElementById(`drop-${type}`).classList.remove('dragover');
+}
+function handleDrop(e, type) {
+  e.preventDefault();
+  document.getElementById(`drop-${type}`).classList.remove('dragover');
+  const files = [...e.dataTransfer.files];
+  files.forEach(f => uploadFile(f, type));
+}
+
+async function uploadFile(file, type) {
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('type', type);
+  showToast(`Uploading ${file.name}…`, 'info');
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    await loadFiles();
+    showToast(`✓ ${file.name} uploaded`, 'success');
+  } catch(e) {
+    showToast(`Upload failed: ${e.message}`, 'error');
+  }
+}
+
+// ─────────────────────────────────────────────
+// Section toggle
+// ─────────────────────────────────────────────
+function toggleSection(key) {
+  const body = document.getElementById(`body-${key}`);
+  const chevron = document.getElementById(`chevron-${key}`);
+  const open = body.classList.toggle('open');
+  chevron.classList.toggle('open', open);
+}
+
+// ─────────────────────────────────────────────
+// Document summary pills
+// ─────────────────────────────────────────────
+function updateDocSummary() {
+  const s = allFiles.filter(f => f.type === 'alta_survey').length;
+  const c = allFiles.filter(f => f.type === 'title_commitment').length;
+  const d = allFiles.filter(f => f.type === 'title_document').length;
+  document.getElementById('pill-survey').textContent = `${s} Survey${s !== 1 ? 's' : ''}`;
+  document.getElementById('pill-commit').textContent = `${c} Commitment${c !== 1 ? 's' : ''}`;
+  document.getElementById('pill-doc').textContent = `${d} Document${d !== 1 ? 's' : ''}`;
+}
+
+// ─────────────────────────────────────────────
+// Analysis
+// ─────────────────────────────────────────────
+async function runAnalysis() {
+  const surveys = allFiles.filter(f => f.type === 'alta_survey');
+  if (surveys.length === 0) {
+    showToast('Please upload at least one ALTA Survey first', 'error');
+    return;
+  }
+  if (analyzing) return;
+
+  analyzing = true;
+  analysisText = '';
+  analysisComplete = false;
+
+  setAnalyzeBtn(true);
+  showLoadingState();
+
+  const contextNotes = document.getElementById('contextNotes').value;
+
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ context_notes: contextNotes })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Analysis request failed');
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    const preview = document.getElementById('streamingPreview');
+    preview.style.display = 'block';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // keep incomplete line
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const payload = JSON.parse(line.slice(6));
+          if (payload.error) throw new Error(payload.error);
+          if (payload.text) {
+            analysisText += payload.text;
+            // Live preview (plain text)
+            preview.textContent = analysisText.slice(-1200);
+            preview.scrollTop = preview.scrollHeight;
+          }
+          if (payload.done) {
+            analyzing = false;
+            analysisComplete = true;
+          }
+        } catch(parseErr) {
+          if (parseErr.message !== 'Unexpected end of JSON input') {
+            throw parseErr;
+          }
+        }
+      }
+    }
+
+    showAnalysisResult(analysisText);
+    setAnalyzeBtn(false);
+    updateResultsStatus();
+    enableToolbarButtons(true);
+    showToast('Analysis complete ✓', 'success');
+
+  } catch(e) {
+    analyzing = false;
+    setAnalyzeBtn(false);
+    showEmptyState();
+    showToast(`Analysis failed: ${e.message}`, 'error');
+  }
+}
+
+function setAnalyzeBtn(loading) {
+  const btn = document.getElementById('analyzeBtn');
+  const icon = document.getElementById('analyzeBtnIcon');
+  const text = document.getElementById('analyzeBtnText');
+  btn.disabled = loading;
+  if (loading) {
+    icon.textContent = '⏳';
+    text.textContent = 'Analyzing…';
+  } else {
+    icon.textContent = '⚖️';
+    text.textContent = 'Run Legal Analysis';
+  }
+}
+
+// ─────────────────────────────────────────────
+// Results display states
+// ─────────────────────────────────────────────
+function showEmptyState() {
+  document.getElementById('emptyState').style.display = 'flex';
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('analysisResult').style.display = 'none';
+}
+
+function showLoadingState() {
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('loadingState').style.display = 'flex';
+  document.getElementById('analysisResult').style.display = 'none';
+  document.getElementById('streamingPreview').style.display = 'none';
+  document.getElementById('streamingPreview').textContent = '';
+}
+
+function showAnalysisResult(text) {
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('loadingState').style.display = 'none';
+  const resultDiv = document.getElementById('analysisResult');
+  const card = document.getElementById('analysisCard');
+  resultDiv.style.display = 'block';
+  card.innerHTML = renderAnalysis(text);
+  // Scroll to top of results
+  document.getElementById('resultsScroll').scrollTop = 0;
+}
+
+function renderAnalysis(text) {
+  // Parse markdown
+  let html = marked.parse(text, { breaks: false });
+  // Post-process risk labels
+  html = html.replace(/🔴\s*HIGH RISK/g, '<span class="risk-high">🔴 HIGH RISK</span>');
+  html = html.replace(/🟡\s*MEDIUM RISK/g, '<span class="risk-medium">🟡 MEDIUM RISK</span>');
+  html = html.replace(/🟢\s*LOW RISK/g, '<span class="risk-low">🟢 LOW RISK</span>');
+  html = html.replace(/🔵\s*INFORMATIONAL/g, '<span class="risk-info">🔵 INFORMATIONAL</span>');
+  return html;
+}
+
+function clearResults() {
+  analysisText = '';
+  analysisComplete = false;
+  showEmptyState();
+  enableToolbarButtons(false);
+  updateResultsStatus();
+}
+
+function updateResultsStatus() {
+  const el = document.getElementById('resultsStatus');
+  if (analysisComplete) {
+    const now = new Date().toLocaleString();
+    el.textContent = `Analysis completed at ${now}`;
+  } else if (analyzing) {
+    el.textContent = 'Analysis in progress…';
+  } else {
+    el.textContent = 'No analysis run yet';
+  }
+}
+
+function enableToolbarButtons(on) {
+  ['copyBtn','printBtn','clearResultsBtn'].forEach(id => {
+    document.getElementById(id).disabled = !on;
+  });
+}
+
+// ─────────────────────────────────────────────
+// Toolbar actions
+// ─────────────────────────────────────────────
+function copyAnalysis() {
+  if (!analysisText) return;
+  navigator.clipboard.writeText(analysisText)
+    .then(() => showToast('Analysis copied to clipboard', 'success'))
+    .catch(() => showToast('Copy failed', 'error'));
+}
+
+function printAnalysis() {
+  if (!analysisText) return;
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <html><head><title>ALTA Survey Analysis</title>
+    <style>
+      body { font-family: Georgia, serif; max-width: 800px; margin: 40px auto; color: #111; line-height: 1.7; }
+      h1 { border-bottom: 2px solid #c9a14a; padding-bottom: 8px; }
+      h2 { background: #eef2f9; padding: 8px 12px; border-left: 4px solid #1a2e4a; margin-top: 28px; }
+      .risk-high { color: #b91c1c; font-weight: bold; }
+      .risk-medium { color: #92400e; font-weight: bold; }
+      .risk-low { color: #065f46; font-weight: bold; }
+      .risk-info { color: #1e40af; font-weight: bold; }
+      @media print { body { margin: 20px; } }
+    </style></head>
+    <body>${renderAnalysis(analysisText)}</body></html>
+  `);
+  win.document.close();
+  win.print();
+}
+
+// ─────────────────────────────────────────────
+// Toast notifications
+// ─────────────────────────────────────────────
+function showToast(msg, type='info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3500);
+}
+
+// ─────────────────────────────────────────────
+// Utility
+// ─────────────────────────────────────────────
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function esc(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─────────────────────────────────────────────
+// Init
+// ─────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  loadFiles();
+
+  // Configure marked
+  marked.setOptions({
+    gfm: true,
+    breaks: false,
+  });
+});
+</script>
+</body>
+</html>
