@@ -1265,6 +1265,12 @@ function clearAllDocs() {
 /* ============================================================
    SIDEBAR TOGGLE
    ============================================================ */
+function expandToSplit() {
+  const app = document.getElementById('app');
+  app.classList.remove('sidebar-full', 'sidebar-pre');
+  document.getElementById('sidebar-toggle').innerHTML = '&#x203A;';
+}
+
 function toggleSidebar() {
   const app = document.getElementById('app');
   const btn = document.getElementById('sidebar-toggle');
@@ -1683,14 +1689,11 @@ async function runAnalysis() {
   const allFiles = [...S.files.survey, ...S.files.commitment, ...S.files.docs];
   if (allFiles.some(f => f.processing)) { alert('Files are still processing. Please wait a moment.'); return; }
 
+  // Switch to split layout immediately so the results panel is visible
+  expandToSplit();
+
   // Claude.ai mode: build prompt and show the copy modal — no API call needed
-  if (S.backend === 'claude') {
-    const appEl = document.getElementById('app');
-    appEl.classList.remove('sidebar-full', 'sidebar-pre');
-    document.getElementById('sidebar-toggle').innerHTML = '&#x203A;';
-    showClaudePrompt();
-    return;
-  }
+  if (S.backend === 'claude') { showClaudePrompt(); return; }
 
   S.busy = true;
   const btn = document.getElementById('analyze-btn');
@@ -1720,10 +1723,6 @@ async function runAnalysis() {
     if (!full.trim()) throw new Error('No response received from the AI.');
     renderResult(full);
     saveHistory(full);
-    // Switch from full-width sidebar to split layout and reveal the toggle strip
-    const appEl = document.getElementById('app');
-    appEl.classList.remove('sidebar-full', 'sidebar-pre');
-    document.getElementById('sidebar-toggle').innerHTML = '&#x203A;';
     setStatus('done', 'Analysis complete');
     document.getElementById('results-scroll').scrollTop = 0;
 
