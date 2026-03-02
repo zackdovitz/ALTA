@@ -595,6 +595,35 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .history-delete:hover { opacity: 1; color: #f87171; background: rgba(220,38,38,.12); }
 .history-empty { font-size: 12px; color: var(--sidebar-label); text-align: center; padding: 14px 0; opacity: 0.65; line-height: 1.6; }
 
+/* ============================================================
+   SIDEBAR TOGGLE STRIP
+   ============================================================ */
+#sidebar-toggle {
+  width: 20px; flex-shrink: 0;
+  background: var(--sidebar-bg);
+  border: none;
+  border-left: 1px solid var(--sidebar-border);
+  border-right: 1px solid var(--sidebar-border);
+  cursor: pointer;
+  color: var(--sidebar-label);
+  font-size: 18px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
+}
+#sidebar-toggle:hover { background: rgba(201,161,74,0.12); color: var(--gold); }
+
+/* Full-width sidebar mode (initial state + manually expanded) */
+#app.sidebar-full #sidebar { width: 100% !important; border-right: none; }
+#app.sidebar-full #results-panel { display: none !important; }
+#app.sidebar-full #sidebar-toggle { border-right: none; }
+
+/* Pre-analysis: hide the toggle entirely (nothing to toggle to) */
+#app.sidebar-pre #sidebar-toggle { display: none; }
+
+/* Smooth sidebar width transition */
+#sidebar { transition: width 0.3s ease, background 0.2s; }
+
 /* Narrow screens (tablet / small laptop) — sidebar full-width on top */
 @media (max-width: 860px) {
   #main-layout { flex-direction: column; }
@@ -615,16 +644,27 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 @media print {
-  #sidebar, #header, #disclaimer-bar, #results-toolbar { display: none !important; }
-  #results-panel { overflow: visible; }
-  #results-scroll { overflow: visible; padding: 0; }
-  .result-card { border: none; padding: 0; }
-  body { background: white; color: black; }
+  /* Remove all height/overflow constraints so content flows across pages */
+  html, body { height: auto !important; overflow: visible !important; }
+  #app { height: auto !important; overflow: visible !important; display: block !important; }
+  #main-layout { height: auto !important; overflow: visible !important; display: block !important; }
+  #results-panel { overflow: visible !important; display: block !important; height: auto !important; flex: none !important; }
+  #results-scroll { overflow: visible !important; height: auto !important; padding: 0 !important; }
+  /* Hide chrome */
+  #sidebar, #sidebar-toggle, #header, #disclaimer-bar, #results-toolbar { display: none !important; }
+  /* Readability */
+  body { background: #fff !important; color: #000 !important; font-size: 11pt !important; }
+  .result-card { border: 1px solid #ddd !important; padding: 20pt !important; max-width: 100% !important; box-shadow: none !important; }
+  .result-card h1 { font-size: 16pt !important; page-break-after: avoid; }
+  .result-card h2 { font-size: 13pt !important; page-break-after: avoid; }
+  .result-card h3 { font-size: 11pt !important; page-break-after: avoid; }
+  .result-card p, .result-card li { font-size: 10.5pt !important; line-height: 1.6 !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
 </style>
 </head>
 <body>
-<div id="app">
+<div id="app" class="sidebar-full sidebar-pre">
 
   <!-- HEADER — always dark navy -->
   <header id="header">
@@ -878,8 +918,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
         <button class="btn btn-primary" id="analyze-btn" onclick="runAnalysis()">
           &#x26A1; Run Legal Analysis
         </button>
+        <button class="btn btn-secondary" id="clear-all-btn" onclick="clearAllDocs()" style="width:100%;margin-top:8px;">
+          &#x1F5D1; Clear All Uploaded Docs
+        </button>
       </div>
     </aside>
+
+    <!-- SIDEBAR TOGGLE STRIP -->
+    <button id="sidebar-toggle" onclick="toggleSidebar()" title="Expand / collapse sidebar">&#x203A;</button>
 
     <!-- RESULTS PANEL -->
     <main id="results-panel">
@@ -889,6 +935,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
         <span id="status-text">Ready</span>
         <button class="btn btn-secondary btn-sm" id="btn-copy" onclick="copyResults()">&#x1F4CB; Copy</button>
         <button class="btn btn-secondary btn-sm" onclick="window.print()">&#x1F5A8;&#xFE0F; Print</button>
+        <button class="btn btn-secondary btn-sm" id="btn-word" onclick="exportToWord()">&#x1F4C4; Word</button>
+        <button class="btn btn-secondary btn-sm" id="btn-gdocs" onclick="exportToGoogleDocs()">&#x1F4D1; Google Docs</button>
         <button class="btn btn-secondary btn-sm" onclick="clearResults()">&#x2715; Clear</button>
       </div>
 
@@ -1207,6 +1255,83 @@ function rename(zone, id, itemEl) {
 }
 
 function clearZone(zone) { S.files[zone] = []; renderFiles(zone); }
+
+function clearAllDocs() {
+  if (!S.files.survey.length && !S.files.commitment.length && !S.files.docs.length) return;
+  if (!confirm('Remove all uploaded documents from all three zones?')) return;
+  ['survey', 'commitment', 'docs'].forEach(clearZone);
+}
+
+/* ============================================================
+   SIDEBAR TOGGLE
+   ============================================================ */
+function toggleSidebar() {
+  const app = document.getElementById('app');
+  const btn = document.getElementById('sidebar-toggle');
+  const expanding = !app.classList.contains('sidebar-full');
+  app.classList.toggle('sidebar-full', expanding);
+  btn.innerHTML = expanding ? '&#x2039;' : '&#x203A;';  // ‹ / ›
+}
+
+/* ============================================================
+   EXPORT
+   ============================================================ */
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 18px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.25);max-width:340px;line-height:1.5;';
+  t.style.background = type === 'error' ? '#7f1d1d' : type === 'success' ? '#064e3b' : '#1e3a5f';
+  t.style.color = type === 'error' ? '#fee2e2' : type === 'success' ? '#d1fae5' : '#dbeafe';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+function exportToWord() {
+  if (!S.lastResult) { alert('No results to export.'); return; }
+  const html = document.getElementById('result-body').innerHTML;
+  const wordHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office'
+    xmlns:w='urn:schemas-microsoft-com:office:word'
+    xmlns='http://www.w3.org/TR/REC-html40'>
+  <head><meta charset='utf-8'><title>ALTA Survey Analysis</title>
+  <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View>
+    <w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+  <style>
+    body { font-family: Calibri, sans-serif; font-size: 11pt; color: #111; margin: 72pt; }
+    h1 { font-size: 16pt; color: #0f1d30; border-bottom: 2pt solid #c9a14a; padding-bottom: 4pt; }
+    h2 { font-size: 13pt; color: #1a2e4a; margin-top: 18pt; }
+    h3 { font-size: 11pt; color: #2d4a6a; margin-top: 12pt; }
+    p, li { line-height: 1.65; }
+    strong { font-weight: bold; }
+    hr { border-top: 1pt solid #ccc; }
+    code { font-family: Consolas, monospace; font-size: 9.5pt; background: #f0f4fa; }
+  </style></head>
+  <body>${html}</body></html>`;
+  const blob = new Blob([wordHtml], { type: 'application/msword' });
+  const url  = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'ALTA-Survey-Analysis.doc';
+  a.click();
+  URL.revokeObjectURL(url);
+  const btn = document.getElementById('btn-word');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '\u2705 Downloaded!';
+  setTimeout(() => { btn.innerHTML = orig; }, 2500);
+}
+
+function exportToGoogleDocs() {
+  if (!S.lastResult) { alert('No results to export.'); return; }
+  const btn = document.getElementById('btn-gdocs');
+  const orig = btn.innerHTML;
+  navigator.clipboard.writeText(S.lastResult).then(() => {
+    window.open('https://docs.new', '_blank', 'noopener');
+    btn.innerHTML = '\u2705 Copied — paste in new tab';
+    setTimeout(() => { btn.innerHTML = orig; }, 3500);
+    showToast('Analysis copied! In the new Google Doc, press Ctrl+V (or \u2318+V on Mac) to paste.', 'info');
+  }).catch(() => {
+    window.open('https://docs.new', '_blank', 'noopener');
+    showToast('Could not auto-copy. Manually copy the results and paste into the new Google Doc.', 'error');
+  });
+}
 
 /* ============================================================
    RESULTS UI
@@ -1559,7 +1684,13 @@ async function runAnalysis() {
   if (allFiles.some(f => f.processing)) { alert('Files are still processing. Please wait a moment.'); return; }
 
   // Claude.ai mode: build prompt and show the copy modal — no API call needed
-  if (S.backend === 'claude') { showClaudePrompt(); return; }
+  if (S.backend === 'claude') {
+    const appEl = document.getElementById('app');
+    appEl.classList.remove('sidebar-full', 'sidebar-pre');
+    document.getElementById('sidebar-toggle').innerHTML = '&#x203A;';
+    showClaudePrompt();
+    return;
+  }
 
   S.busy = true;
   const btn = document.getElementById('analyze-btn');
@@ -1589,6 +1720,10 @@ async function runAnalysis() {
     if (!full.trim()) throw new Error('No response received from the AI.');
     renderResult(full);
     saveHistory(full);
+    // Switch from full-width sidebar to split layout and reveal the toggle strip
+    const appEl = document.getElementById('app');
+    appEl.classList.remove('sidebar-full', 'sidebar-pre');
+    document.getElementById('sidebar-toggle').innerHTML = '&#x203A;';
     setStatus('done', 'Analysis complete');
     document.getElementById('results-scroll').scrollTop = 0;
 
