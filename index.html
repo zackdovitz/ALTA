@@ -1015,6 +1015,10 @@ function toggleSection(id) {
 /* ============================================================
    BACKEND
    ============================================================ */
+function analyzeBtnLabel(b) {
+  return b === 'claude' ? '&#x1F4CB; Build Prompt for Claude.ai' : '&#x26A1; Run Legal Analysis';
+}
+
 function setBackend(b) {
   S.backend = b;
   localStorage.setItem('backend', b);
@@ -1025,7 +1029,7 @@ function setBackend(b) {
   document.getElementById('ollama-fields').style.display = b === 'ollama' ? 'block' : 'none';
   document.getElementById('claude-fields').style.display = b === 'claude' ? 'block' : 'none';
   const btn = document.getElementById('analyze-btn');
-  btn.innerHTML = b === 'claude' ? '&#x1F4CB; Build Prompt for Claude.ai' : '&#x26A1; Run Legal Analysis';
+  btn.innerHTML = analyzeBtnLabel(b);
 }
 
 function ollamaModelChange() {
@@ -1304,15 +1308,19 @@ async function readSSE(body, onLine) {
   const reader = body.getReader();
   const dec = new TextDecoder();
   let buf = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += dec.decode(value, { stream: true });
-    const lines = buf.split('\n');
-    buf = lines.pop();
-    for (const l of lines) { if (l.trim()) onLine(l); }
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const l of lines) { if (l.trim()) onLine(l); }
+    }
+    if (buf.trim()) onLine(buf);
+  } finally {
+    reader.cancel();
   }
-  if (buf.trim()) onLine(buf);
 }
 
 /* ============================================================
@@ -1486,7 +1494,7 @@ function historySnippet(md) {
 function saveHistory(md) {
   const entries = historyLoad();
   entries.unshift({
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 11),
     ts: Date.now(),
     title: historyTitle(md),
     snippet: historySnippet(md),
@@ -1494,7 +1502,7 @@ function saveHistory(md) {
   });
   if (entries.length > HISTORY_MAX) entries.length = HISTORY_MAX;
   historySave(entries);
-  renderHistory();
+  renderHistory(entries);  // pass directly — avoids a second localStorage parse
 }
 
 function loadHistoryEntry(id) {
@@ -1517,8 +1525,8 @@ function clearHistory() {
   renderHistory();
 }
 
-function renderHistory() {
-  const entries = historyLoad();
+function renderHistory(entries) {
+  entries = entries || historyLoad();
   const list    = document.getElementById('history-list');
   const badge   = document.getElementById('history-badge');
   const clearBtn = document.getElementById('history-clear-btn');
@@ -1568,11 +1576,11 @@ async function runAnalysis() {
     const content = buildContent();
     document.getElementById('loading-sub').textContent = 'Running AI analysis (streaming)\u2026';
 
+    const preview = document.getElementById('streaming-preview');
     const onChunk = chunk => {
       full += chunk;
-      const prev = document.getElementById('streaming-preview');
-      prev.textContent = full.slice(-800);
-      prev.scrollTop = prev.scrollHeight;
+      preview.textContent = full.slice(-800);
+      preview.scrollTop = preview.scrollHeight;
     };
 
     if (S.backend === 'anthropic') await callAnthropic(content, onChunk);
@@ -1594,7 +1602,7 @@ async function runAnalysis() {
   } finally {
     S.busy = false;
     btn.disabled = false;
-    btn.innerHTML = S.backend === 'claude' ? '&#x1F4CB; Build Prompt for Claude.ai' : '\u26A1 Run Legal Analysis';
+    btn.innerHTML = analyzeBtnLabel(S.backend);
   }
 }
 
