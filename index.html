@@ -566,6 +566,35 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   outline: 2px solid var(--gold); outline-offset: 2px;
 }
 
+/* ============================================================
+   HISTORY
+   ============================================================ */
+.history-list { display: flex; flex-direction: column; gap: 8px; margin-top: 2px; }
+.history-entry {
+  background: var(--input-bg); border: 1px solid var(--input-border);
+  border-radius: 8px; padding: 10px 30px 10px 12px;
+  cursor: pointer; position: relative;
+  transition: border-color 0.15s, background 0.15s;
+}
+.history-entry:hover { border-color: var(--gold); background: rgba(201,161,74,.05); }
+.history-ts { font-size: 11px; color: var(--sidebar-label); margin-bottom: 3px; }
+.history-title {
+  font-size: 13px; font-weight: 600; color: var(--input-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px;
+}
+.history-snippet {
+  font-size: 11px; color: var(--sidebar-label); line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.history-delete {
+  position: absolute; top: 8px; right: 6px;
+  background: none; border: none; cursor: pointer;
+  color: var(--sidebar-label); font-size: 15px; line-height: 1;
+  padding: 2px 5px; border-radius: 4px; opacity: 0.45; font-family: inherit;
+}
+.history-delete:hover { opacity: 1; color: #f87171; background: rgba(220,38,38,.12); }
+.history-empty { font-size: 12px; color: var(--sidebar-label); text-align: center; padding: 14px 0; opacity: 0.65; line-height: 1.6; }
+
 /* Narrow screens (tablet / small laptop) — sidebar full-width on top */
 @media (max-width: 860px) {
   #main-layout { flex-direction: column; }
@@ -824,6 +853,22 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
           <div class="section-body" id="body-notes">
             <textarea id="deal-notes" placeholder="Add deal context, specific concerns, intended use, client notes&hellip;" rows="5"></textarea>
             <div class="hint-text">Notes are included in the analysis prompt.</div>
+          </div>
+        </div>
+
+        <!-- PAST ANALYSES -->
+        <div class="section-card">
+          <div class="section-header" onclick="toggleSection('history')">
+            <div class="section-header-left">
+              <span class="section-icon">&#x1F553;</span>
+              <span class="section-title">Past Analyses</span>
+              <span class="section-badge" id="history-badge" style="display:none">0</span>
+            </div>
+            <span class="section-chevron" id="chev-history">&#x25BC;</span>
+          </div>
+          <div class="section-body" id="body-history">
+            <div id="history-list" class="history-list"></div>
+            <button class="btn btn-sm btn-danger" id="history-clear-btn" onclick="clearHistory()" style="width:100%;margin-top:10px;display:none">&#x1F5D1; Clear All History</button>
           </div>
         </div>
 
@@ -1404,6 +1449,101 @@ function copyPrompt() {
   });
 }
 
+/* ============================================================
+   ANALYSIS HISTORY  (localStorage, max 10 entries)
+   ============================================================ */
+const HISTORY_KEY = 'alta_history';
+const HISTORY_MAX = 10;
+
+function historyLoad() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+}
+function historySave(entries) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+  } catch {
+    // Quota hit — shed oldest until it fits
+    while (entries.length > 1) {
+      entries.pop();
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(entries)); break; } catch {}
+    }
+  }
+}
+
+function historyTitle(md) {
+  const docs = md.match(/\*\*Document\(s\) Reviewed:\*\*\s*(.+)/);
+  if (docs && docs[1] && !docs[1].includes('[list')) return docs[1].trim().slice(0, 80);
+  const h = md.match(/^#{1,2} (?!ALTA SURVEY ANALYSIS MEMORANDUM)(.+)/m);
+  if (h) return h[1].trim().slice(0, 80);
+  return 'Analysis';
+}
+function historySnippet(md) {
+  const ex = md.match(/##\s*EXECUTIVE SUMMARY\s*\n+([\s\S]{20,400})/i);
+  const raw = ex ? ex[1] : md;
+  return raw.replace(/[#*`_>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 200);
+}
+
+function saveHistory(md) {
+  const entries = historyLoad();
+  entries.unshift({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    ts: Date.now(),
+    title: historyTitle(md),
+    snippet: historySnippet(md),
+    md
+  });
+  if (entries.length > HISTORY_MAX) entries.length = HISTORY_MAX;
+  historySave(entries);
+  renderHistory();
+}
+
+function loadHistoryEntry(id) {
+  const entry = historyLoad().find(e => e.id === id);
+  if (!entry) return;
+  renderResult(entry.md);
+  setStatus('done', 'Loaded from history \u2014 ' + new Date(entry.ts).toLocaleDateString());
+  document.getElementById('results-scroll').scrollTop = 0;
+}
+
+function deleteHistoryEntry(id, evt) {
+  evt.stopPropagation();
+  historySave(historyLoad().filter(e => e.id !== id));
+  renderHistory();
+}
+
+function clearHistory() {
+  if (!confirm('Delete all saved analyses?')) return;
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+}
+
+function renderHistory() {
+  const entries = historyLoad();
+  const list    = document.getElementById('history-list');
+  const badge   = document.getElementById('history-badge');
+  const clearBtn = document.getElementById('history-clear-btn');
+  if (!entries.length) {
+    list.innerHTML = '<div class="history-empty">No analyses saved yet.<br>Results auto-save after each run.</div>';
+    badge.style.display = 'none';
+    clearBtn.style.display = 'none';
+    return;
+  }
+  badge.textContent = entries.length;
+  badge.style.display = '';
+  clearBtn.style.display = '';
+  list.innerHTML = entries.map(e => {
+    const d  = new Date(e.ts);
+    const ts = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) +
+               ' &middot; ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    return `<div class="history-entry" onclick="loadHistoryEntry('${e.id}')">
+      <button class="history-delete" onclick="deleteHistoryEntry('${e.id}',event)" title="Delete">&times;</button>
+      <div class="history-ts">${ts}</div>
+      <div class="history-title">${escHtml(e.title)}</div>
+      ${e.snippet ? `<div class="history-snippet">${escHtml(e.snippet)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
 async function runAnalysis() {
   if (S.busy) return;
   if (!S.files.survey.length) { alert('Please upload at least one ALTA Survey document first.'); return; }
@@ -1440,6 +1580,7 @@ async function runAnalysis() {
 
     if (!full.trim()) throw new Error('No response received from the AI.');
     renderResult(full);
+    saveHistory(full);
     setStatus('done', 'Analysis complete');
     document.getElementById('results-scroll').scrollTop = 0;
 
@@ -1489,6 +1630,7 @@ function escHtml(s) {
 
   // Initial state
   showState('empty');
+  renderHistory();
 
   // Close claude prompt modal on Escape
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closePromptModal(); });
