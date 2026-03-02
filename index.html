@@ -665,6 +665,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
             <div class="segmented-control">
               <button class="segmented-btn active" id="btn-anthropic" onclick="setBackend('anthropic')">&#x1F916; Anthropic API</button>
               <button class="segmented-btn" id="btn-ollama" onclick="setBackend('ollama')">&#x1F999; Ollama (Local)</button>
+              <button class="segmented-btn" id="btn-claude" onclick="setBackend('claude')">&#x1F4CB; Claude.ai</button>
             </div>
 
             <!-- Anthropic -->
@@ -700,6 +701,15 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
               </div>
               <div class="hint-text" style="margin-top:8px">Run <code class="inline">ollama pull llava:34b</code> to download</div>
               <div class="hint-text" style="margin-top:6px">&#x26A0;&#xFE0F; Ollama must be running locally. Vision models required for survey images.</div>
+            </div>
+
+            <!-- Claude.ai -->
+            <div id="claude-fields" style="display:none">
+              <div class="hint-text" style="margin-top:4px; line-height:1.55">
+                No API key needed &mdash; works on restricted networks.<br><br>
+                The tool extracts text from your uploaded documents, assembles the full analysis prompt, and copies it to your clipboard so you can paste it straight into <strong><a href="https://claude.ai" target="_blank" rel="noopener">claude.ai</a></strong>.<br><br>
+                &#x26A0;&#xFE0F; Also drag your original survey PDFs &amp; images into the Claude chat so it can read the diagrams.
+              </div>
             </div>
 
           </div>
@@ -946,8 +956,12 @@ function setBackend(b) {
   localStorage.setItem('backend', b);
   document.getElementById('btn-anthropic').classList.toggle('active', b === 'anthropic');
   document.getElementById('btn-ollama').classList.toggle('active', b === 'ollama');
+  document.getElementById('btn-claude').classList.toggle('active', b === 'claude');
   document.getElementById('anthropic-fields').style.display = b === 'anthropic' ? 'block' : 'none';
   document.getElementById('ollama-fields').style.display = b === 'ollama' ? 'block' : 'none';
+  document.getElementById('claude-fields').style.display = b === 'claude' ? 'block' : 'none';
+  const btn = document.getElementById('analyze-btn');
+  btn.innerHTML = b === 'claude' ? '&#x1F4CB; Build Prompt for Claude.ai' : '&#x26A1; Run Legal Analysis';
 }
 
 function ollamaModelChange() {
@@ -1312,11 +1326,73 @@ async function callOllama(content, onChunk) {
 /* ============================================================
    RUN ANALYSIS
    ============================================================ */
+/* ============================================================
+   CLAUDE.AI PROMPT MODE
+   ============================================================ */
+function buildPromptText() {
+  const lines = [];
+  lines.push('You are a senior real estate attorney with 25+ years of practice focused exclusively on commercial real estate transactions. You have personally reviewed thousands of ALTA/NSPS Land Title Surveys and are nationally recognized for the depth and precision of your survey analysis. Your task is to produce a comprehensive, partner-level survey review memorandum. Write as if you are handing this memo directly to a sophisticated client and their deal team on the eve of a significant transaction closing.\n');
+  lines.push('Guidelines:\n• Be specific. Cite exact bearings, distances, dimensions, and schedule references visible in the documents. Do not generalize.\n• Risk-rate every finding using exactly one of these labels on its own line before the finding text: 🔴 HIGH RISK | 🟡 MEDIUM RISK | 🟢 LOW RISK | 🔵 INFORMATIONAL\n• Where the survey or documents are ambiguous or information appears to be missing, say so explicitly and explain the legal consequence of the gap.\n• Conclude with a plain-English Executive Summary a non-lawyer client can read in 90 seconds.\n• Format using markdown headers, bold labels, and bullet points for readability.\n\n---\n');
+
+  function addZone(zone, label) {
+    if (!S.files[zone].length) return;
+    lines.push('\n\n--- ' + label + ' (' + S.files[zone].length + ' file(s)) ---\n');
+    S.files[zone].forEach(f => {
+      lines.push('\nFile: ' + f.name + '\n');
+      if (!f.data)        { lines.push('[Processing not complete]\n'); return; }
+      if (f.data.error)   { lines.push('[Error: ' + f.data.error + ']\n'); return; }
+      if (f.data.kind === 'survey-pdf' || f.data.kind === 'text') {
+        if (f.data.text) lines.push('Text (' + f.data.total + ' pages):\n' + f.data.text + '\n');
+        if (f.data.images && f.data.images.length)
+          lines.push('[' + f.data.images.length + ' page image(s) — attach the original PDF to the Claude chat so it can see the diagrams]\n');
+      } else if (f.data.kind === 'image') {
+        lines.push('[Image file — attach ' + f.name + ' directly to the Claude chat]\n');
+      }
+    });
+  }
+
+  addZone('survey',     'ALTA SURVEY DOCUMENTS');
+  addZone('commitment', 'TITLE COMMITMENT');
+  addZone('docs',       'TITLE DOCUMENTS');
+
+  const notes = document.getElementById('deal-notes').value.trim();
+  if (notes) lines.push('\n\n--- DEAL NOTES ---\n' + notes + '\n');
+  lines.push('\n\n' + ANALYSIS_PROMPT);
+  return lines.join('');
+}
+
+function showClaudePrompt() {
+  const text = buildPromptText();
+  document.getElementById('prompt-text').value = text;
+  document.getElementById('copy-prompt-btn').textContent = '📋 Copy to Clipboard';
+  const modal = document.getElementById('prompt-modal');
+  modal.style.display = 'flex';
+}
+
+function closePromptModal() {
+  document.getElementById('prompt-modal').style.display = 'none';
+}
+
+function copyPrompt() {
+  const ta = document.getElementById('prompt-text');
+  navigator.clipboard.writeText(ta.value).then(() => {
+    const btn = document.getElementById('copy-prompt-btn');
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => { btn.textContent = '📋 Copy to Clipboard'; }, 2500);
+  }).catch(() => {
+    ta.select();
+    document.execCommand('copy');
+  });
+}
+
 async function runAnalysis() {
   if (S.busy) return;
   if (!S.files.survey.length) { alert('Please upload at least one ALTA Survey document first.'); return; }
   const allFiles = [...S.files.survey, ...S.files.commitment, ...S.files.docs];
   if (allFiles.some(f => f.processing)) { alert('Files are still processing. Please wait a moment.'); return; }
+
+  // Claude.ai mode: build prompt and show the copy modal — no API call needed
+  if (S.backend === 'claude') { showClaudePrompt(); return; }
 
   S.busy = true;
   const btn = document.getElementById('analyze-btn');
@@ -1358,7 +1434,7 @@ async function runAnalysis() {
   } finally {
     S.busy = false;
     btn.disabled = false;
-    btn.innerHTML = '\u26A1 Run Legal Analysis';
+    btn.innerHTML = S.backend === 'claude' ? '&#x1F4CB; Build Prompt for Claude.ai' : '\u26A1 Run Legal Analysis';
   }
 }
 
@@ -1394,7 +1470,28 @@ function escHtml(s) {
 
   // Initial state
   showState('empty');
+
+  // Close claude prompt modal on Escape
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closePromptModal(); });
 })();
 </script>
+
+<!-- CLAUDE.AI PROMPT MODAL -->
+<div id="prompt-modal" onclick="if(event.target===this)closePromptModal()" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.65); align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--results-card-bg,#172840); border:1px solid var(--results-border,#1e3a5f); border-radius:12px; width:100%; max-width:760px; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 24px 60px rgba(0,0,0,.5);">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--results-border,#1e3a5f); flex-shrink:0;">
+      <div>
+        <div style="font-size:15px; font-weight:700; color:var(--results-card-text,#b8cce0);">&#x1F4CB; Your Claude Prompt</div>
+        <div style="font-size:11px; color:var(--sidebar-label,#8aa8c8); margin-top:2px;">Copy this &rarr; paste into claude.ai &rarr; also attach your PDFs to the chat</div>
+      </div>
+      <button onclick="closePromptModal()" style="background:none;border:none;cursor:pointer;color:var(--sidebar-label,#8aa8c8);font-size:20px;line-height:1;padding:4px 8px;">&times;</button>
+    </div>
+    <textarea id="prompt-text" readonly style="flex:1; overflow-y:auto; resize:none; margin:0; padding:16px 20px; background:var(--input-bg,#0f1d30); border:none; border-radius:0; color:var(--input-text,#c8d8ea); font-size:12px; font-family:monospace; line-height:1.55; outline:none;"></textarea>
+    <div style="display:flex; gap:10px; padding:14px 20px; border-top:1px solid var(--results-border,#1e3a5f); flex-shrink:0; flex-wrap:wrap;">
+      <button id="copy-prompt-btn" onclick="copyPrompt()" class="btn btn-primary" style="flex:1; min-width:160px;">&#x1F4CB; Copy to Clipboard</button>
+      <a href="https://claude.ai/new" target="_blank" rel="noopener" class="btn" style="flex:1; min-width:160px; text-align:center; text-decoration:none; background:var(--toggle-active-bg,#1e3a5f); color:var(--results-card-text,#b8cce0); border:1px solid var(--results-border,#1e3a5f);" onclick="copyPrompt()">&#x1F30D; Open claude.ai &rarr;</a>
+    </div>
+  </div>
+</div>
 </body>
 </html>
