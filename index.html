@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ALTA Survey Analyzer — Professional Legal Review</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@11/marked.min.js"></script>
+  <style>
+    :root {
+      --navy: #1a2e4a;
+      --navy-dark: #0f1d30;
+      --navy-light: #243d5e;
+      --gold: #c9a14a;
+      --gold-light: #e4bf7a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #eef1f6;
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: var(--navy-dark);
+      border-bottom: 3px solid var(--gold);
+      padding: 0 24px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .header-brand { display: flex; align-items: center; gap: 12px; }
+    .header-icon { width: 34px; height: 34px; background: var(--gold); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .header-title { color: #fff; font-size: 18px; font-weight: 700; }
+    .header-sub { color: #8fa8c4; font-size: 12px; margin-top: 1px; }
+    .header-badge { background: rgba(201,161,74,.15); border: 1px solid rgba(201,161,74,.4); color: var(--gold-light); font-size: 11px; padding: 4px 10px; border-radius: 20px; letter-spacing: .5px; }
+    .main-layout { display: flex; flex: 1; overflow: hidden; }
+    aside { width: 380px; flex-shrink: 0; background: var(--navy); display: flex; flex-direction: column; overflow: hidden; }
+    .sidebar-scroll { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+    .sidebar-scroll::-webkit-scrollbar { width: 5px; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: #2d4d6e; border-radius: 3px; }
+
+    /* API Key section */
+    .api-key-section { background: rgba(201,161,74,.08); border: 1px solid rgba(201,161,74,.25); border-radius: 10px; padding: 12px; }
+    .api-key-label { color: var(--gold-light); font-size: 12px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .api-key-input { width: 100%; background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.15); border-radius: 6px; color: #c8d8ea; font-size: 12px; padding: 8px 10px; outline: none; font-family: monospace; }
+    .api-key-input:focus { border-color: var(--gold); }
+    .api-key-input::placeholder { color: #3d5a78; }
+    .api-key-hint { color: #5a7a9a; font-size: 11px; margin-top: 6px; }
+    .api-key-ok { color: #34d399; font-size: 11px; margin-top: 4px; display: none; }
+
+    .upload-section { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; overflow: hidden; }
+    .section-header { padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+    .section-header:hover { background: rgba(255,255,255,.04); }
+    .section-label { display: flex; align-items: center; gap: 8px; color: #c8d8ea; font-size: 13px; font-weight: 600; }
+    .section-dot { width: 9px; height: 9px; border-radius: 50%; }
+    .dot-blue { background: #60a5fa; } .dot-green { background: #34d399; } .dot-purple { background: #a78bfa; }
+    .section-meta { display: flex; align-items: center; gap: 8px; }
+    .file-count { background: rgba(255,255,255,.12); color: #9bb8d4; font-size: 11px; padding: 2px 7px; border-radius: 10px; }
+    .chevron { color: #5a7a9a; font-size: 12px; transition: transform .2s; }
+    .chevron.open { transform: rotate(180deg); }
+    .section-body { display: none; }
+    .section-body.open { display: block; }
+    .drop-zone { margin: 0 12px 12px; border: 2px dashed rgba(255,255,255,.15); border-radius: 8px; padding: 14px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; }
+    .drop-zone:hover, .drop-zone.dragover { border-color: var(--gold); background: rgba(201,161,74,.07); }
+    .drop-zone-text { color: #7a9ab8; font-size: 12px; line-height: 1.5; }
+    .drop-zone-text strong { color: var(--gold-light); }
+    .file-list { padding: 0 12px 8px; display: flex; flex-direction: column; gap: 4px; }
+    .file-item { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); border-radius: 7px; padding: 8px 10px; display: flex; align-items: center; gap: 8px; transition: background .15s; }
+    .file-item:hover { background: rgba(255,255,255,.1); }
+    .file-item.selected { background: rgba(201,161,74,.12); border-color: rgba(201,161,74,.3); }
+    .file-cb { width: 15px; height: 15px; cursor: pointer; accent-color: var(--gold); flex-shrink: 0; }
+    .file-icon { font-size: 15px; flex-shrink: 0; }
+    .file-info { flex: 1; min-width: 0; }
+    .file-name { color: #cde; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+    .file-name:hover { color: var(--gold-light); }
+    .file-name-input { background: rgba(255,255,255,.1); border: 1px solid var(--gold); border-radius: 4px; color: #fff; font-size: 12px; padding: 2px 6px; width: 100%; outline: none; }
+    .file-size { color: #5a7a9a; font-size: 11px; }
+    .file-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .icon-btn { width: 26px; height: 26px; background: transparent; border: none; border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; transition: background .15s; color: #7a9ab8; }
+    .icon-btn:hover { background: rgba(255,255,255,.12); color: #cde; }
+    .icon-btn.danger:hover { background: rgba(239,68,68,.15); color: #f87171; }
+    .bulk-bar { margin: 0 12px 10px; display: flex; gap: 6px; }
+    .bulk-btn { flex: 1; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; }
+    .bulk-btn:disabled { opacity: .35; cursor: default; }
+    .bulk-btn-danger { background: rgba(239,68,68,.2); color: #f87171; border: 1px solid rgba(239,68,68,.25); }
+    .bulk-btn-danger:not(:disabled):hover { background: rgba(239,68,68,.35); }
+    .bulk-btn-secondary { background: rgba(255,255,255,.08); color: #9bb8d4; border: 1px solid rgba(255,255,255,.1); }
+    .bulk-btn-secondary:not(:disabled):hover { background: rgba(255,255,255,.14); }
+    .context-section { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); border-radius: 10px; padding: 12px; }
+    .context-label { color: #9bb8d4; font-size: 12px; font-weight: 600; letter-spacing: .3px; margin-bottom: 8px; }
+    textarea#contextNotes { width: 100%; height: 100px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 6px; color: #c8d8ea; font-size: 12.5px; line-height: 1.6; padding: 10px; resize: vertical; outline: none; font-family: inherit; }
+    textarea#contextNotes:focus { border-color: var(--gold); }
+    textarea#contextNotes::placeholder { color: #3d5a78; }
+    .sidebar-footer { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,.07); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+    .doc-summary { display: flex; gap: 6px; flex-wrap: wrap; }
+    .doc-pill { font-size: 11px; padding: 3px 8px; border-radius: 12px; font-weight: 500; }
+    .pill-blue { background: rgba(96,165,250,.15); color: #93c5fd; border: 1px solid rgba(96,165,250,.2); }
+    .pill-green { background: rgba(52,211,153,.12); color: #6ee7b7; border: 1px solid rgba(52,211,153,.2); }
+    .pill-purple { background: rgba(167,139,250,.12); color: #c4b5fd; border: 1px solid rgba(167,139,250,.2); }
+    .analyze-btn { width: 100%; padding: 13px; background: var(--gold); color: var(--navy-dark); border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background .2s, transform .1s; }
+    .analyze-btn:hover:not(:disabled) { background: var(--gold-light); transform: translateY(-1px); }
+    .analyze-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .clear-all-btn { width: 100%; padding: 7px; background: transparent; color: #5a7a9a; border: 1px solid rgba(255,255,255,.08); border-radius: 6px; font-size: 11px; cursor: pointer; }
+    .clear-all-btn:hover { color: #f87171; border-color: rgba(239,68,68,.3); }
+
+    /* Results */
+    .results-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #f0f2f7; }
+    .results-toolbar { padding: 10px 20px; background: #fff; border-bottom: 1px solid #d8dde8; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .results-title { font-size: 14px; font-weight: 600; color: #1a2e4a; }
+    .results-status { font-size: 12px; color: #7a8eab; }
+    .toolbar-actions { display: flex; gap: 8px; }
+    .toolbar-btn { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid #c8d0de; background: #fff; color: #4a5a78; transition: background .15s; }
+    .toolbar-btn:hover { background: #f0f2f7; }
+    .toolbar-btn:disabled { opacity: .4; cursor: default; }
+    .results-scroll { flex: 1; overflow-y: auto; padding: 24px; }
+    .results-scroll::-webkit-scrollbar { width: 6px; }
+    .results-scroll::-webkit-scrollbar-thumb { background: #c0c8d8; border-radius: 3px; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 16px; color: #8a9ab8; }
+    .empty-icon { font-size: 56px; opacity: .4; }
+    .empty-title { font-size: 20px; font-weight: 600; color: #4a5a78; }
+    .empty-desc { font-size: 14px; max-width: 420px; text-align: center; line-height: 1.6; }
+    .empty-steps { background: #fff; border-radius: 12px; padding: 20px 28px; max-width: 400px; border: 1px solid #dce2ef; }
+    .empty-step { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; border-bottom: 1px solid #eef1f7; font-size: 13px; color: #5a6a88; }
+    .empty-step:last-child { border-bottom: none; }
+    .step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--navy); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 40px; text-align: center; }
+    .spinner-ring { width: 48px; height: 48px; border: 4px solid #dce4f0; border-top-color: var(--navy); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-label { font-size: 15px; font-weight: 600; color: #2a3e58; }
+    .loading-sub { font-size: 13px; color: #8a9ab8; max-width: 340px; line-height: 1.5; }
+    .progress-bar-wrap { width: 100%; max-width: 400px; background: #dce4f0; border-radius: 8px; height: 6px; overflow: hidden; }
+    .progress-bar { height: 100%; background: var(--gold); border-radius: 8px; transition: width .3s; width: 0%; }
+    #streamingPreview { background:#fff; border-radius:8px; padding:14px 18px; margin-top:8px; max-width:680px; width:100%; border:1px solid #dce2ef; font-size:12px; color:#4a5a78; line-height:1.7; max-height:200px; overflow-y:auto; white-space:pre-wrap; font-family:monospace; }
+    .analysis-card { background: #fff; border-radius: 12px; border: 1px solid #d8dde8; padding: 32px 38px; max-width: 960px; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,.05); }
+    .analysis-card h1 { font-size: 22px; font-weight: 800; color: #0f1d30; border-bottom: 2px solid var(--gold); padding-bottom: 10px; margin: 0 0 20px; }
+    .analysis-card h2 { font-size: 16px; font-weight: 700; color: #1a2e4a; margin: 28px 0 10px; padding: 8px 14px; background: #eef2f9; border-left: 4px solid var(--navy); border-radius: 0 6px 6px 0; }
+    .analysis-card h3 { font-size: 14px; font-weight: 700; color: #2d4a6a; margin: 18px 0 8px; }
+    .analysis-card h4 { font-size: 13px; font-weight: 600; color: #4a6080; margin: 14px 0 6px; }
+    .analysis-card p { color: #2a3a50; font-size: 13.5px; line-height: 1.75; margin: 0 0 12px; }
+    .analysis-card ul, .analysis-card ol { padding-left: 22px; margin: 6px 0 14px; }
+    .analysis-card li { color: #2a3a50; font-size: 13.5px; line-height: 1.75; margin-bottom: 4px; }
+    .analysis-card strong { color: #0f1d30; }
+    .analysis-card hr { border: none; border-top: 1px solid #dce2ef; margin: 24px 0; }
+    .analysis-card code { background: #f0f4fa; border-radius: 3px; padding: 1px 5px; font-size: 12px; color: #2d4870; }
+    .risk-high { color: #b91c1c; font-weight: 700; }
+    .risk-medium { color: #92400e; font-weight: 700; }
+    .risk-low { color: #065f46; font-weight: 700; }
+    .risk-info { color: #1e40af; font-weight: 700; }
+    .toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 9999; }
+    .toast { padding: 12px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; box-shadow: 0 4px 16px rgba(0,0,0,.15); animation: slideIn .25s ease; max-width: 340px; }
+    .toast-success { background: #065f46; color: #d1fae5; }
+    .toast-error { background: #7f1d1d; color: #fee2e2; }
+    .toast-info { background: #1e3a5f; color: #dbeafe; }
+    @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: none; opacity: 1; } }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: #b0bdd0; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-brand">
+    <div class="header-icon">⚖️</div>
+    <div>
+      <div class="header-title">ALTA Survey Analyzer</div>
+      <div class="header-sub">Professional Real Estate Legal Analysis</div>
+    </div>
+  </div>
+  <div class="header-badge">ATTORNEY-GRADE REVIEW ENGINE</div>
+</header>
+
+<div class="main-layout">
+  <aside>
+    <div class="sidebar-scroll">
+
+      <!-- API Key -->
+      <div class="api-key-section">
+        <div class="api-key-label">🔑 Anthropic API Key</div>
+        <input type="password" id="apiKeyInput" class="api-key-input"
+               placeholder="sk-ant-api03-..."
+               oninput="saveApiKey(this.value)" />
+        <div class="api-key-hint">Your key is stored in this browser only and never sent anywhere except directly to Anthropic.</div>
+        <div class="api-key-ok" id="apiKeyOk">✓ API key saved</div>
+      </div>
+
+      <!-- ALTA Survey -->
+      <div class="upload-section">
+        <div class="section-header" onclick="toggleSection('alta')">
+          <div class="section-label">
+            <span class="section-dot dot-blue"></span>
+            ALTA Survey
+            <span style="color:#4a6a8a;font-size:11px;font-weight:400;">(required)</span>
+          </div>
+          <div class="section-meta">
+            <span class="file-count" id="count-alta_survey">0</span>
+            <span class="chevron open" id="chevron-alta">▼</span>
+          </div>
+        </div>
+        <div class="section-body open" id="body-alta">
+          <div class="drop-zone" id="drop-alta_survey"
+               onclick="triggerUpload('alta_survey')"
+               ondragover="handleDragOver(event,'alta_survey')"
+               ondragleave="handleDragLeave('alta_survey')"
+               ondrop="handleDrop(event,'alta_survey')">
+            <div style="font-size:24px;margin-bottom:6px;">📐</div>
+            <div class="drop-zone-text"><strong>Drop survey here</strong> or click to browse<br/>PDF, PNG, JPG accepted</div>
+          </div>
+          <div class="file-list" id="list-alta_survey"></div>
+          <div class="bulk-bar" id="bulk-alta_survey" style="display:none;">
+            <button class="bulk-btn bulk-btn-danger" id="del-sel-alta_survey" onclick="deleteSelected('alta_survey')" disabled>🗑 Delete Selected</button>
+            <button class="bulk-btn bulk-btn-secondary" onclick="selectAll('alta_survey')">Select All</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Title Commitment -->
+      <div class="upload-section">
+        <div class="section-header" onclick="toggleSection('commit')">
+          <div class="section-label">
+            <span class="section-dot dot-green"></span>
+            Title Commitment
+          </div>
+          <div class="section-meta">
+            <span class="file-count" id="count-title_commitment">0</span>
+            <span class="chevron open" id="chevron-commit">▼</span>
+          </div>
+        </div>
+        <div class="section-body open" id="body-commit">
+          <div class="drop-zone" id="drop-title_commitment"
+               onclick="triggerUpload('title_commitment')"
+               ondragover="handleDragOver(event,'title_commitment')"
+               ondragleave="handleDragLeave('title_commitment')"
+               ondrop="handleDrop(event,'title_commitment')">
+            <div style="font-size:24px;margin-bottom:6px;">📋</div>
+            <div class="drop-zone-text"><strong>Drop commitment here</strong> or click to browse<br/>Schedule A, B-I, B-II</div>
+          </div>
+          <div class="file-list" id="list-title_commitment"></div>
+          <div class="bulk-bar" id="bulk-title_commitment" style="display:none;">
+            <button class="bulk-btn bulk-btn-danger" id="del-sel-title_commitment" onclick="deleteSelected('title_commitment')" disabled>🗑 Delete Selected</button>
+            <button class="bulk-btn bulk-btn-secondary" onclick="selectAll('title_commitment')">Select All</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Title Documents -->
+      <div class="upload-section">
+        <div class="section-header" onclick="toggleSection('docs')">
+          <div class="section-label">
+            <span class="section-dot dot-purple"></span>
+            Title Documents
+          </div>
+          <div class="section-meta">
+            <span class="file-count" id="count-title_document">0</span>
+            <span class="chevron open" id="chevron-docs">▼</span>
+          </div>
+        </div>
+        <div class="section-body open" id="body-docs">
+          <div class="drop-zone" id="drop-title_document"
+               onclick="triggerUpload('title_document')"
+               ondragover="handleDragOver(event,'title_document')"
+               ondragleave="handleDragLeave('title_document')"
+               ondrop="handleDrop(event,'title_document')">
+            <div style="font-size:24px;margin-bottom:6px;">📄</div>
+            <div class="drop-zone-text"><strong>Drop documents here</strong> or click to browse<br/>Deeds, easements, plats, CC&Rs</div>
+          </div>
+          <div class="file-list" id="list-title_document"></div>
+          <div class="bulk-bar" id="bulk-title_document" style="display:none;">
+            <button class="bulk-btn bulk-btn-danger" id="del-sel-title_document" onclick="deleteSelected('title_document')" disabled>🗑 Delete Selected</button>
+            <button class="bulk-btn bulk-btn-secondary" onclick="selectAll('title_document')">Select All</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Context Notes -->
+      <div class="context-section">
+        <div class="context-label">📝 Context Notes</div>
+        <textarea id="contextNotes" placeholder="Describe the transaction, intended use, known issues, deal structure, or anything else the attorney should know before reviewing…"></textarea>
+      </div>
+
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="doc-summary">
+        <span class="doc-pill pill-blue" id="pill-survey">0 Surveys</span>
+        <span class="doc-pill pill-green" id="pill-commit">0 Commitments</span>
+        <span class="doc-pill pill-purple" id="pill-doc">0 Documents</span>
+      </div>
+      <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">
+        <span id="analyzeBtnIcon">⚖️</span>
+        <span id="analyzeBtnText">Run Legal Analysis</span>
+      </button>
+      <button class="clear-all-btn" onclick="clearAllFiles()">Clear All Uploaded Documents</button>
+    </div>
+  </aside>
+
+  <div class="results-panel">
+    <div class="results-toolbar">
+      <div>
+        <div class="results-title">Analysis Results</div>
+        <div class="results-status" id="resultsStatus">No analysis run yet</div>
+      </div>
+      <div class="toolbar-actions">
+        <button class="toolbar-btn" id="copyBtn" onclick="copyAnalysis()" disabled>📋 Copy</button>
+        <button class="toolbar-btn" id="printBtn" onclick="printAnalysis()" disabled>🖨 Print</button>
+        <button class="toolbar-btn" id="clearResultsBtn" onclick="clearResults()" disabled>✕ Clear</button>
+      </div>
+    </div>
+    <div class="results-scroll" id="resultsScroll">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">⚖️</div>
+        <div class="empty-title">ALTA Survey Legal Analysis</div>
+        <div class="empty-desc">Upload your ALTA Survey and related title documents, then click <strong>Run Legal Analysis</strong> for a comprehensive attorney-grade review.</div>
+        <div class="empty-steps">
+          <div class="empty-step"><div class="step-num">1</div><div>Enter your <strong>Anthropic API key</strong> in the sidebar</div></div>
+          <div class="empty-step"><div class="step-num">2</div><div>Upload the <strong>ALTA Survey</strong> (PDF or image) — required</div></div>
+          <div class="empty-step"><div class="step-num">3</div><div>Optionally add a <strong>Title Commitment</strong> for Schedule B cross-reference</div></div>
+          <div class="empty-step"><div class="step-num">4</div><div>Add any <strong>Title Documents</strong> and context notes, then run</div></div>
+        </div>
+      </div>
+      <div class="loading-state" id="loadingState" style="display:none;">
+        <div class="spinner-ring"></div>
+        <div class="loading-label" id="loadingLabel">Preparing documents…</div>
+        <div class="loading-sub">Our AI attorney is carefully reviewing your ALTA Survey. This may take 1–3 minutes for complex surveys.</div>
+        <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+        <div id="streamingPreview" style="display:none;"></div>
+      </div>
+      <div id="analysisResult" style="display:none;">
+        <div class="analysis-card" id="analysisCard"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" style="display:none;" multiple
+       accept=".pdf,.png,.jpg,.jpeg,.tiff,.tif"
+       onchange="handleFileInputChange(event)" />
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ─── PDF.js worker ───────────────────────────────────────────────────────────
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ─── Prompts ─────────────────────────────────────────────────────────────────
+const SYSTEM_PROMPT = `You are a senior real estate attorney with 25+ years of practice focused exclusively on commercial real estate transactions. You have personally reviewed thousands of ALTA/NSPS Land Title Surveys and are nationally recognized for the depth and precision of your survey analysis. Your task is to produce a comprehensive, partner-level survey review memorandum. Write as if you are handing this memo directly to a sophisticated client and their deal team on the eve of a significant transaction closing.
+
+Guidelines:
+• Be specific. Cite exact bearings, distances, dimensions, and schedule references visible in the documents. Do not generalize.
+• Risk-rate every finding using exactly one of these labels on its own line before the finding text: 🔴 HIGH RISK | 🟡 MEDIUM RISK | 🟢 LOW RISK | 🔵 INFORMATIONAL
+• Where the survey or documents are ambiguous or information appears to be missing, say so explicitly and explain the legal consequence of the gap.
+• Conclude with a plain-English Executive Summary a non-lawyer client can read in 90 seconds.
+• Format using markdown headers, bold labels, and bullet points for readability.`;
+
+const ANALYSIS_PROMPT = `Please produce a comprehensive ALTA Survey Analysis Memorandum structured exactly as follows:
+
+---
+
+# ALTA SURVEY ANALYSIS MEMORANDUM
+
+**Prepared by:** AI Legal Analysis Engine (for review and verification by licensed counsel)
+**Document(s) Reviewed:** [list the survey(s) and supporting documents you received]
+**Standards Reference:** ALTA/NSPS Minimum Standard Detail Requirements (most current version)
+
+---
+
+## PART I — SURVEY CERTIFICATION & STANDARDS COMPLIANCE
+- Surveyor name, license number, firm, and state
+- Date of survey and date of last revision (if any)
+- Parties to whom the survey is certified; confirm all required parties are named
+- Certification language — confirm it follows the approved ALTA language or flag deviations
+- Table A optional items: list each item number that appears to have been requested; note any items that appear missing or incompletely addressed
+- Overall standards compliance assessment
+
+## PART II — LEGAL DESCRIPTION ANALYSIS
+- Reproduce or summarize the legal description shown on the survey
+- Cross-reference to the legal description in the title commitment (if provided)
+- Identify any discrepancy, even minor (e.g., acreage rounding, missing call, alternate metes-and-bounds language)
+- Assess gap/overlap risk from any discrepancy found
+- Note whether description is by metes and bounds, lot/block, government survey, or other
+
+## PART III — BOUNDARY, CLOSURE & ACREAGE
+- Describe the shape and boundary of the parcel
+- Confirm or question closure of the traverse
+- State total area (acres and/or sq ft) as shown on survey
+- Note monuments found vs. set — assess adequacy
+- Calls to adjoiners — confirm consistency with record documents
+- Flag any unresolved gaps, overlaps, strips, or gores along the boundary
+
+## PART IV — ENCROACHMENTS & ENCUMBRANCES
+For each encroachment or encumbrance plotted or noted:
+  - Describe it specifically (what, where, dimensions if visible)
+  - State direction: does subject property encroach outward, or does something encroach inward?
+  - Rate severity: boundary-line encroachment vs. setback encroachment vs. easement-area encroachment
+  - Cross-reference to Schedule B of title commitment — is it already excepted?
+  - If NOT already excepted: flag as new exception/objection required
+  - Recommend insurance coverage approach or physical cure
+
+## PART V — EASEMENT ANALYSIS
+For each easement plotted or referenced:
+  - Type (utility, access, drainage, pipeline, conservation, etc.)
+  - Location and dimensions relative to the parcel
+  - Proximity to existing improvements and planned development
+  - Beneficial, burdensome, or deal-breaking assessment
+  - Access easement analysis: legal and practical ingress/egress adequacy for intended use
+  - Recommended endorsements (ALTA 28, ALTA 28.1, etc.)
+
+## PART VI — SETBACK LINE ANALYSIS
+- Identify all setback lines shown (regulatory/zoning vs. plat/deed-restriction)
+- Confirm whether existing improvements comply with each setback
+- Non-conforming structures: flag, assess insurability, analyze rebuilding exposure
+- Development program feasibility: map available building envelope against all setbacks
+
+## PART VII — ROADS, RIGHTS-OF-WAY & ACCESS
+- Nature of road access (public dedicated/accepted, private, easement-only)
+- Confirm whether the property abuts a publicly dedicated and accepted right-of-way
+- Width of right-of-way and road surface improvements
+- If access is by easement only: confirm it is recorded, runs with the land, and is insurable
+- Adequacy for lender, permitting, and client's operational/development requirements
+
+## PART VIII — FLOOD ZONE, UTILITIES & OTHER OBSERVATIONS
+- FEMA flood zone designation and FIRM panel number/date (if shown)
+- Utility lines, poles, meters plotted — any in conflict with improvements or development?
+- Any survey notes or legends that require legal attention
+- Anything else on the face of the survey requiring attorney review
+
+## PART IX — TITLE COMMITMENT CROSS-REFERENCE
+(Complete this section only if a title commitment was provided)
+- Schedule A: confirm insured amount, effective date, and vesting
+- Schedule B-I (requirements): flag any outstanding requirements affecting survey matters
+- Schedule B-II (exceptions): cross-reference every survey-plotted item to a Schedule B exception; flag any survey matters without a corresponding exception
+- Recommend specific ALTA endorsements: (e.g., ALTA 9, ALTA 17/17.1, ALTA 19, ALTA 25, ALTA 28/28.1, flood endorsements, etc.)
+
+---
+
+## PART X — ACTION ITEMS (PRIORITIZED)
+
+### 🔴 IMMEDIATE — Potential Deal Issues or Closing Blockers
+### 🟡 PRE-CLOSING REQUIREMENTS
+### 🟢 STANDARD FOLLOW-UP / SELLER CURE ITEMS
+### 🔵 INFORMATIONAL / NO ACTION REQUIRED
+
+---
+
+## EXECUTIVE SUMMARY
+
+Write 3–5 paragraphs in plain English suitable for a sophisticated but non-lawyer client. Cover: overall survey quality, major risks identified, whether the deal appears insurable as surveyed, key items requiring attention before closing, and your overall risk assessment (Low / Moderate / High / Elevated).
+
+---
+
+Now produce the full memorandum based on all documents provided above.`;
+
+// ─── State ────────────────────────────────────────────────────────────────────
+const files = [];           // { id, displayName, type, size, ext, arrayBuffer, base64, mediaType, isImage }
+const selected = { alta_survey: new Set(), title_commitment: new Set(), title_document: new Set() };
+let currentUploadType = '';
+let analyzing = false;
+let analysisText = '';
+let analysisComplete = false;
+const TYPES = ['alta_survey', 'title_commitment', 'title_document'];
+
+// ─── API Key ──────────────────────────────────────────────────────────────────
+function saveApiKey(val) {
+  val = val.trim();
+  if (val) {
+    localStorage.setItem('anthropic_api_key', val);
+    document.getElementById('apiKeyOk').style.display = 'block';
+  } else {
+    localStorage.removeItem('anthropic_api_key');
+    document.getElementById('apiKeyOk').style.display = 'none';
+  }
+}
+function getApiKey() { return localStorage.getItem('anthropic_api_key') || ''; }
+
+// ─── File helpers ─────────────────────────────────────────────────────────────
+function generateId() {
+  return crypto.randomUUID ? crypto.randomUUID() :
+    ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+      (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+}
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ─── Read file as ArrayBuffer ─────────────────────────────────────────────────
+function readAsArrayBuffer(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = rej;
+    r.readAsArrayBuffer(file);
+  });
+}
+
+// ─── Read image as base64 ─────────────────────────────────────────────────────
+function readImageAsBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => {
+      const b64 = e.target.result.split(',')[1];
+      const mt = file.type || 'image/jpeg';
+      res({ base64: b64, mediaType: mt });
+    };
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// ─── PDF → images via PDF.js ──────────────────────────────────────────────────
+async function pdfToImages(arrayBuffer, maxPages = 15) {
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const total = pdf.numPages;
+  const count = Math.min(total, maxPages);
+  const results = [];
+  for (let i = 1; i <= count; i++) {
+    const page = await pdf.getPage(i);
+    const baseViewport = page.getViewport({ scale: 1 });
+    const targetWidth = Math.min(baseViewport.width * 1.8, 1800);
+    const scale = targetWidth / baseViewport.width;
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    const b64 = canvas.toDataURL('image/jpeg', 0.82).split(',')[1];
+    results.push({ base64: b64, mediaType: 'image/jpeg', pageNum: i });
+  }
+  return { images: results, total };
+}
+
+// ─── PDF → text via PDF.js ───────────────────────────────────────────────────
+async function pdfToText(arrayBuffer, maxChars = 80000) {
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let text = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(item => item.str).join(' ') + '\n\n';
+    if (text.length > maxChars) break;
+  }
+  return text.slice(0, maxChars);
+}
+
+// ─── Upload ───────────────────────────────────────────────────────────────────
+function triggerUpload(type) { currentUploadType = type; document.getElementById('fileInput').value = ''; document.getElementById('fileInput').click(); }
+function handleFileInputChange(e) { [...e.target.files].forEach(f => addFile(f, currentUploadType)); }
+function handleDragOver(e, type) { e.preventDefault(); document.getElementById(`drop-${type}`).classList.add('dragover'); }
+function handleDragLeave(type) { document.getElementById(`drop-${type}`).classList.remove('dragover'); }
+function handleDrop(e, type) { e.preventDefault(); document.getElementById(`drop-${type}`).classList.remove('dragover'); [...e.dataTransfer.files].forEach(f => addFile(f, type)); }
+
+async function addFile(file, type) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const allowed = ['pdf','png','jpg','jpeg','tiff','tif'];
+  if (!allowed.includes(ext)) { showToast(`Unsupported file type: .${ext}`, 'error'); return; }
+  showToast(`Reading ${file.name}…`, 'info');
+  try {
+    const isImage = ext !== 'pdf';
+    const entry = { id: generateId(), displayName: file.name, type, size: file.size, ext, isImage };
+    if (isImage) {
+      const { base64, mediaType } = await readImageAsBase64(file);
+      entry.base64 = base64;
+      entry.mediaType = mediaType;
+    } else {
+      entry.arrayBuffer = await readAsArrayBuffer(file);
+    }
+    files.push(entry);
+    renderAllLists();
+    showToast(`✓ ${file.name} added`, 'success');
+  } catch(e) {
+    showToast(`Failed to read ${file.name}`, 'error');
+  }
+}
+
+// ─── File list rendering ──────────────────────────────────────────────────────
+function renderAllLists() { TYPES.forEach(renderFileList); updateDocSummary(); }
+
+function renderFileList(type) {
+  const list = document.getElementById(`list-${type}`);
+  const typeFiles = files.filter(f => f.type === type);
+  document.getElementById(`count-${type}`).textContent = typeFiles.length;
+  if (typeFiles.length === 0) { list.innerHTML = ''; document.getElementById(`bulk-${type}`).style.display = 'none'; return; }
+  document.getElementById(`bulk-${type}`).style.display = 'flex';
+  list.innerHTML = typeFiles.map(buildFileItem).join('');
+  typeFiles.forEach(f => {
+    const cb = document.getElementById(`cb-${f.id}`);
+    if (cb) { cb.checked = selected[type].has(f.id); cb.addEventListener('change', () => toggleSelect(f.id, f.type)); }
+  });
+}
+
+function buildFileItem(f) {
+  const icon = f.ext === 'pdf' ? '📕' : '🖼';
+  return `<div class="file-item ${selected[f.type].has(f.id) ? 'selected' : ''}" id="item-${f.id}">
+    <input type="checkbox" class="file-cb" id="cb-${f.id}" />
+    <span class="file-icon">${icon}</span>
+    <div class="file-info">
+      <div class="file-name" id="name-${f.id}" title="${esc(f.displayName)}" ondblclick="startRename('${f.id}')">${esc(f.displayName)}</div>
+      <div class="file-size">${formatSize(f.size)}</div>
+    </div>
+    <div class="file-actions">
+      <button class="icon-btn" onclick="startRename('${f.id}')" title="Rename">✏️</button>
+      <button class="icon-btn danger" onclick="deleteFile('${f.id}')" title="Delete">🗑</button>
+    </div>
+  </div>`;
+}
+
+// ─── Selection ────────────────────────────────────────────────────────────────
+function toggleSelect(id, type) {
+  selected[type].has(id) ? selected[type].delete(id) : selected[type].add(id);
+  document.getElementById(`item-${id}`)?.classList.toggle('selected', selected[type].has(id));
+  document.getElementById(`del-sel-${type}`).disabled = selected[type].size === 0;
+}
+function selectAll(type) {
+  const typeFiles = files.filter(f => f.type === type);
+  const allSel = typeFiles.every(f => selected[type].has(f.id));
+  if (allSel) selected[type].clear(); else typeFiles.forEach(f => selected[type].add(f.id));
+  renderFileList(type);
+  document.getElementById(`del-sel-${type}`).disabled = selected[type].size === 0;
+}
+
+// ─── Delete ───────────────────────────────────────────────────────────────────
+function deleteFile(id) {
+  const f = files.find(x => x.id === id);
+  if (!f || !confirm(`Delete "${f.displayName}"?`)) return;
+  const idx = files.indexOf(f);
+  files.splice(idx, 1);
+  selected[f.type].delete(id);
+  renderAllLists();
+  showToast('File removed', 'success');
+}
+function deleteSelected(type) {
+  const ids = [...selected[type]];
+  if (!ids.length || !confirm(`Delete ${ids.length} file(s)?`)) return;
+  ids.forEach(id => { const i = files.findIndex(f => f.id === id); if (i !== -1) files.splice(i, 1); });
+  selected[type].clear();
+  renderAllLists();
+  showToast(`Deleted ${ids.length} file(s)`, 'success');
+}
+function clearAllFiles() {
+  if (!files.length) { showToast('No files to clear', 'info'); return; }
+  if (!confirm(`Remove all ${files.length} file(s)?`)) return;
+  files.length = 0;
+  TYPES.forEach(t => selected[t].clear());
+  renderAllLists();
+  showToast('All files cleared', 'success');
+}
+
+// ─── Rename ───────────────────────────────────────────────────────────────────
+function startRename(id) {
+  const nameEl = document.getElementById(`name-${id}`);
+  if (!nameEl) return;
+  const orig = nameEl.textContent.trim();
+  const inp = document.createElement('input');
+  inp.className = 'file-name-input'; inp.value = orig;
+  nameEl.replaceWith(inp); inp.focus(); inp.select();
+  const save = () => {
+    const val = inp.value.trim();
+    if (val && val !== orig) { const f = files.find(x => x.id === id); if (f) f.displayName = val; }
+    renderAllLists();
+  };
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { inp.blur(); } if (e.key === 'Escape') { inp.value = orig; inp.blur(); } });
+  inp.addEventListener('blur', save);
+}
+
+// ─── Section toggle ───────────────────────────────────────────────────────────
+function toggleSection(key) {
+  document.getElementById(`body-${key}`).classList.toggle('open');
+  document.getElementById(`chevron-${key}`).classList.toggle('open');
+}
+
+// ─── Doc summary pills ────────────────────────────────────────────────────────
+function updateDocSummary() {
+  const s = files.filter(f=>f.type==='alta_survey').length;
+  const c = files.filter(f=>f.type==='title_commitment').length;
+  const d = files.filter(f=>f.type==='title_document').length;
+  document.getElementById('pill-survey').textContent = `${s} Survey${s!==1?'s':''}`;
+  document.getElementById('pill-commit').textContent = `${c} Commitment${c!==1?'s':''}`;
+  document.getElementById('pill-doc').textContent = `${d} Doc${d!==1?'s':''}`;
+}
+
+// ─── Build content array for API ─────────────────────────────────────────────
+async function buildContent(onProgress) {
+  const content = [];
+  const surveys = files.filter(f => f.type === 'alta_survey');
+  const commitments = files.filter(f => f.type === 'title_commitment');
+  const docs = files.filter(f => f.type === 'title_document');
+  const total = surveys.length + commitments.length + docs.length;
+  let done = 0;
+
+  const tick = (label) => { done++; onProgress(label, done / total); };
+
+  for (let i = 0; i < surveys.length; i++) {
+    const s = surveys[i];
+    content.push({ type: 'text', text: `\n${'='.repeat(60)}\nALTA/NSPS LAND TITLE SURVEY #${i+1}: ${s.displayName}\n${'='.repeat(60)}\nExamine every boundary line, note, easement, encroachment, setback, and monument:\n` });
+    if (s.isImage) {
+      content.push({ type: 'image', source: { type: 'base64', media_type: s.mediaType, data: s.base64 } });
+    } else {
+      onProgress(`Rendering survey pages…`, done / total);
+      const { images, total: pages } = await pdfToImages(s.arrayBuffer, 15);
+      content.push({ type: 'text', text: `PDF survey — ${pages} total page(s); ${images.length} rendered:\n` });
+      for (const img of images) {
+        content.push({ type: 'text', text: `[Page ${img.pageNum}]` });
+        content.push({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.base64 } });
+      }
+      const text = await pdfToText(s.arrayBuffer, 60000);
+      if (text.trim()) content.push({ type: 'text', text: `\n[Extracted survey text]\n${text}` });
+    }
+    tick(`Processed survey ${i+1}`);
+  }
+
+  for (let i = 0; i < commitments.length; i++) {
+    const tc = commitments[i];
+    content.push({ type: 'text', text: `\n${'='.repeat(60)}\nTITLE COMMITMENT #${i+1}: ${tc.displayName}\n${'='.repeat(60)}\n` });
+    if (tc.isImage) {
+      content.push({ type: 'image', source: { type: 'base64', media_type: tc.mediaType, data: tc.base64 } });
+    } else {
+      const text = await pdfToText(tc.arrayBuffer, 80000);
+      if (text.trim()) content.push({ type: 'text', text });
+    }
+    tick(`Processed commitment ${i+1}`);
+  }
+
+  for (let i = 0; i < docs.length; i++) {
+    const d = docs[i];
+    content.push({ type: 'text', text: `\n${'='.repeat(60)}\nTITLE DOCUMENT #${i+1}: ${d.displayName}\n${'='.repeat(60)}\n` });
+    if (d.isImage) {
+      content.push({ type: 'image', source: { type: 'base64', media_type: d.mediaType, data: d.base64 } });
+    } else {
+      const text = await pdfToText(d.arrayBuffer, 30000);
+      if (text.trim()) content.push({ type: 'text', text });
+    }
+    tick(`Processed document ${i+1}`);
+  }
+
+  const notes = document.getElementById('contextNotes').value.trim();
+  if (notes) content.push({ type: 'text', text: `\n${'='.repeat(60)}\nCLIENT / DEAL TEAM CONTEXT NOTES:\n${'='.repeat(60)}\n${notes}` });
+  content.push({ type: 'text', text: ANALYSIS_PROMPT });
+  return content;
+}
+
+// ─── Analysis ─────────────────────────────────────────────────────────────────
+async function runAnalysis() {
+  const apiKey = getApiKey();
+  if (!apiKey) { showToast('Please enter your Anthropic API key first', 'error'); document.getElementById('apiKeyInput').focus(); return; }
+  if (!files.filter(f => f.type === 'alta_survey').length) { showToast('Please upload at least one ALTA Survey first', 'error'); return; }
+  if (analyzing) return;
+
+  analyzing = true; analysisText = ''; analysisComplete = false;
+  setAnalyzeBtn(true); showLoadingState();
+
+  try {
+    const content = await buildContent((label, pct) => {
+      document.getElementById('loadingLabel').textContent = label;
+      document.getElementById('progressBar').style.width = (pct * 60) + '%';
+    });
+
+    document.getElementById('loadingLabel').textContent = 'Consulting AI attorney…';
+    document.getElementById('progressBar').style.width = '65%';
+    const preview = document.getElementById('streamingPreview');
+    preview.style.display = 'block';
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-6',
+        max_tokens: 8192,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content }],
+        stream: true
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API error ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (!raw || raw === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
+            analysisText += parsed.delta.text;
+            preview.textContent = analysisText.slice(-1000);
+            preview.scrollTop = preview.scrollHeight;
+            document.getElementById('progressBar').style.width = Math.min(65 + (analysisText.length / 200), 98) + '%';
+          }
+        } catch {}
+      }
+    }
+
+    document.getElementById('progressBar').style.width = '100%';
+    analyzing = false; analysisComplete = true;
+    showAnalysisResult(analysisText);
+    setAnalyzeBtn(false); updateResultsStatus(); enableToolbarBtns(true);
+    showToast('Analysis complete ✓', 'success');
+
+  } catch(e) {
+    analyzing = false;
+    setAnalyzeBtn(false); showEmptyState();
+    showToast(`Analysis failed: ${e.message}`, 'error');
+  }
+}
+
+// ─── UI states ────────────────────────────────────────────────────────────────
+function setAnalyzeBtn(loading) {
+  document.getElementById('analyzeBtn').disabled = loading;
+  document.getElementById('analyzeBtnIcon').textContent = loading ? '⏳' : '⚖️';
+  document.getElementById('analyzeBtnText').textContent = loading ? 'Analyzing…' : 'Run Legal Analysis';
+}
+function showEmptyState() {
+  document.getElementById('emptyState').style.display = 'flex';
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('analysisResult').style.display = 'none';
+}
+function showLoadingState() {
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('loadingState').style.display = 'flex';
+  document.getElementById('analysisResult').style.display = 'none';
+  document.getElementById('streamingPreview').style.display = 'none';
+  document.getElementById('streamingPreview').textContent = '';
+  document.getElementById('progressBar').style.width = '0%';
+  document.getElementById('loadingLabel').textContent = 'Preparing documents…';
+}
+function showAnalysisResult(text) {
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('loadingState').style.display = 'none';
+  const result = document.getElementById('analysisResult');
+  result.style.display = 'block';
+  let html = marked.parse(text, { gfm: true });
+  html = html.replace(/🔴\s*HIGH RISK/g, '<span class="risk-high">🔴 HIGH RISK</span>');
+  html = html.replace(/🟡\s*MEDIUM RISK/g, '<span class="risk-medium">🟡 MEDIUM RISK</span>');
+  html = html.replace(/🟢\s*LOW RISK/g, '<span class="risk-low">🟢 LOW RISK</span>');
+  html = html.replace(/🔵\s*INFORMATIONAL/g, '<span class="risk-info">🔵 INFORMATIONAL</span>');
+  document.getElementById('analysisCard').innerHTML = html;
+  document.getElementById('resultsScroll').scrollTop = 0;
+}
+function clearResults() {
+  analysisText = ''; analysisComplete = false;
+  showEmptyState(); enableToolbarBtns(false); updateResultsStatus();
+}
+function updateResultsStatus() {
+  document.getElementById('resultsStatus').textContent = analysisComplete
+    ? `Analysis completed at ${new Date().toLocaleString()}`
+    : analyzing ? 'Analysis in progress…' : 'No analysis run yet';
+}
+function enableToolbarBtns(on) {
+  ['copyBtn','printBtn','clearResultsBtn'].forEach(id => document.getElementById(id).disabled = !on);
+}
+
+// ─── Toolbar ──────────────────────────────────────────────────────────────────
+function copyAnalysis() {
+  navigator.clipboard.writeText(analysisText)
+    .then(() => showToast('Copied to clipboard', 'success'))
+    .catch(() => showToast('Copy failed', 'error'));
+}
+function printAnalysis() {
+  const win = window.open('', '_blank');
+  let html = marked.parse(analysisText, { gfm: true });
+  html = html.replace(/🔴\s*HIGH RISK/g, '<span style="color:#b91c1c;font-weight:700">🔴 HIGH RISK</span>');
+  html = html.replace(/🟡\s*MEDIUM RISK/g, '<span style="color:#92400e;font-weight:700">🟡 MEDIUM RISK</span>');
+  html = html.replace(/🟢\s*LOW RISK/g, '<span style="color:#065f46;font-weight:700">🟢 LOW RISK</span>');
+  html = html.replace(/🔵\s*INFORMATIONAL/g, '<span style="color:#1e40af;font-weight:700">🔵 INFORMATIONAL</span>');
+  win.document.write(`<html><head><title>ALTA Survey Analysis</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;color:#111;line-height:1.7}h1{border-bottom:2px solid #c9a14a;padding-bottom:8px}h2{background:#eef2f9;padding:8px 12px;border-left:4px solid #1a2e4a;margin-top:28px}@media print{body{margin:20px}}</style></head><body>${html}</body></html>`);
+  win.document.close(); win.print();
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function showToast(msg, type='info') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`; t.textContent = msg;
+  c.appendChild(t); setTimeout(() => t.remove(), 3500);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  marked.setOptions({ gfm: true, breaks: false });
+  const saved = getApiKey();
+  if (saved) {
+    document.getElementById('apiKeyInput').value = saved;
+    document.getElementById('apiKeyOk').style.display = 'block';
+  }
+});
+</script>
+</body>
+</html>
