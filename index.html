@@ -950,6 +950,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
         <button class="btn btn-secondary btn-sm" onclick="window.print()">&#x1F5A8;&#xFE0F; Print</button>
         <button class="btn btn-secondary btn-sm" id="btn-word" onclick="exportToWord()">&#x1F4C4; Word</button>
         <button class="btn btn-secondary btn-sm" id="btn-gdocs" onclick="exportToGoogleDocs()">&#x1F4D1; Google Docs</button>
+        <button class="btn btn-secondary btn-sm" id="btn-summary" onclick="generateSummary()">&#x26A1; Senior Summary</button>
         <button class="btn btn-secondary btn-sm" onclick="clearResults()">&#x2715; Clear</button>
       </div>
 
@@ -1021,6 +1022,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
    PROMPTS
    ============================================================ */
 const SYSTEM_PROMPT = "You are a senior real estate attorney with 25+ years of practice focused exclusively on commercial real estate transactions. You have personally reviewed thousands of ALTA/NSPS Land Title Surveys and are nationally recognized for the depth and precision of your survey analysis. Your task is to produce a comprehensive, partner-level survey review memorandum. Write as if you are handing this memo directly to a sophisticated client and their deal team on the eve of a significant transaction closing.\n\nGuidelines:\n\u2022 Be specific. Cite exact bearings, distances, dimensions, and schedule references visible in the documents. Do not generalize.\n\u2022 Risk-rate every finding using exactly one of these labels on its own line before the finding text: \uD83D\uDD34 HIGH RISK | \uD83D\uDFE1 MEDIUM RISK | \uD83D\uDFE2 LOW RISK | \uD83D\uDD35 INFORMATIONAL\n\u2022 Where the survey or documents are ambiguous or information appears to be missing, say so explicitly and explain the legal consequence of the gap.\n\u2022 Conclude with a plain-English Executive Summary a non-lawyer client can read in 90 seconds.\n\u2022 Format using markdown headers, bold labels, and bullet points for readability.";
+
+const SUMMARY_SYSTEM = "You are a senior real estate attorney at a top-tier law firm.";
+const SUMMARY_USER = "Take this survey analysis your over-eager paralegal prepared and turn it into a tight (one page or less), simple bullet point list of material items. Use your best judgment.\n\n---\n\n";
 
 const ANALYSIS_PROMPT = "Please produce a comprehensive ALTA Survey Analysis Memorandum structured exactly as follows:\n\n---\n\n# ALTA SURVEY ANALYSIS MEMORANDUM\n\n**Prepared by:** AI Legal Analysis Engine (for review and verification by licensed counsel)\n**Document(s) Reviewed:** [list the survey(s) and supporting documents you received]\n**Standards Reference:** ALTA/NSPS Minimum Standard Detail Requirements (most current version)\n\n---\n\n## PART I \u2014 SURVEY CERTIFICATION & STANDARDS COMPLIANCE\n- Surveyor name, license number, firm, and state\n- Date of survey and date of last revision (if any)\n- Parties to whom the survey is certified; confirm all required parties are named\n- Certification language \u2014 confirm it follows the approved ALTA language or flag deviations\n- Table A optional items: list each item number that appears to have been requested; note any items that appear missing or incompletely addressed\n- Overall standards compliance assessment\n\n## PART II \u2014 LEGAL DESCRIPTION ANALYSIS\n- Reproduce or summarize the legal description shown on the survey\n- Cross-reference to the legal description in the title commitment (if provided)\n- Identify any discrepancy, even minor (e.g., acreage rounding, missing call, alternate metes-and-bounds language)\n- Assess gap/overlap risk from any discrepancy found\n- Note whether description is by metes and bounds, lot/block, government survey, or other\n\n## PART III \u2014 BOUNDARY, CLOSURE & ACREAGE\n- Describe the shape and boundary of the parcel\n- Confirm or question closure of the traverse\n- State total area (acres and/or sq ft) as shown on survey\n- Note monuments found vs. set \u2014 assess adequacy\n- Calls to adjoiners \u2014 confirm consistency with record documents\n- Flag any unresolved gaps, overlaps, strips, or gores along the boundary\n\n## PART IV \u2014 ENCROACHMENTS & ENCUMBRANCES\nFor each encroachment or encumbrance plotted or noted:\n  - Describe it specifically (what, where, dimensions if visible)\n  - State direction: does subject property encroach outward, or does something encroach inward?\n  - Rate severity: boundary-line encroachment vs. setback encroachment vs. easement-area encroachment\n  - Cross-reference to Schedule B of title commitment \u2014 is it already excepted?\n  - If NOT already excepted: flag as new exception/objection required\n  - Recommend insurance coverage approach or physical cure\n\n## PART V \u2014 EASEMENT ANALYSIS\nFor each easement plotted or referenced:\n  - Type (utility, access, drainage, pipeline, conservation, etc.)\n  - Location and dimensions relative to the parcel\n  - Proximity to existing improvements and planned development\n  - Beneficial, burdensome, or deal-breaking assessment\n  - Access easement analysis: legal and practical ingress/egress adequacy for intended use\n  - Recommended endorsements (ALTA 28, ALTA 28.1, etc.)\n\n## PART VI \u2014 SETBACK LINE ANALYSIS\n- Identify all setback lines shown (regulatory/zoning vs. plat/deed-restriction)\n- Confirm whether existing improvements comply with each setback\n- Non-conforming structures: flag, assess insurability, analyze rebuilding exposure\n- Development program feasibility: map available building envelope against all setbacks\n\n## PART VII \u2014 ROADS, RIGHTS-OF-WAY & ACCESS\n- Nature of road access (public dedicated/accepted, private, easement-only)\n- Confirm whether the property abuts a publicly dedicated and accepted right-of-way\n- Width of right-of-way and road surface improvements\n- If access is by easement only: confirm it is recorded, runs with the land, and is insurable\n- Adequacy for lender, permitting, and client's operational/development requirements\n\n## PART VIII \u2014 FLOOD ZONE, UTILITIES & OTHER OBSERVATIONS\n- FEMA flood zone designation and FIRM panel number/date (if shown)\n- Utility lines, poles, meters plotted \u2014 any in conflict with improvements or development?\n- Any survey notes or legends that require legal attention\n- Anything else on the face of the survey requiring attorney review\n\n## PART IX \u2014 TITLE COMMITMENT CROSS-REFERENCE\n(Complete this section only if a title commitment was provided)\n- Schedule A: confirm insured amount, effective date, and vesting\n- Schedule B-I (requirements): flag any outstanding requirements affecting survey matters\n- Schedule B-II (exceptions): cross-reference every survey-plotted item to a Schedule B exception; flag any survey matters without a corresponding exception\n- Recommend specific ALTA endorsements: (e.g., ALTA 9, ALTA 17/17.1, ALTA 19, ALTA 25, ALTA 28/28.1, flood endorsements, etc.)\n\n---\n\n## PART X \u2014 ACTION ITEMS (PRIORITIZED)\n\n### \uD83D\uDD34 IMMEDIATE \u2014 Potential Deal Issues or Closing Blockers\n### \uD83D\uDFE1 PRE-CLOSING REQUIREMENTS\n### \uD83D\uDFE2 STANDARD FOLLOW-UP / SELLER CURE ITEMS\n### \uD83D\uDD35 INFORMATIONAL / NO ACTION REQUIRED\n\n---\n\n## EXECUTIVE SUMMARY\n\nWrite 3\u20135 paragraphs in plain English suitable for a sophisticated but non-lawyer client. Cover: overall survey quality, major risks identified, whether the deal appears insurable as surveyed, key items requiring attention before closing, and your overall risk assessment (Low / Moderate / High / Elevated).\n\n---\n\nNow produce the full memorandum based on all documents provided above.";
 
@@ -1409,6 +1413,113 @@ function styleRiskLabels(root) {
       .replace(/\uD83D\uDD35\s*INFORMATIONAL/g,   '<span class="risk-info">\uD83D\uDD35 INFORMATIONAL</span>');
     if (r !== t) { const sp = document.createElement('span'); sp.innerHTML = r; node.parentNode.replaceChild(sp, node); }
   });
+}
+
+/* ============================================================
+   SENIOR-LEVEL SUMMARY
+   ============================================================ */
+async function generateSummary() {
+  if (S.busy) return;
+  if (!S.lastResult) { alert('Run an analysis first before generating a summary.'); return; }
+
+  // Claude.ai copy mode — show prompt in modal
+  if (S.backend === 'claude') {
+    const text = SUMMARY_SYSTEM + '\n\n' + SUMMARY_USER + S.lastResult;
+    document.getElementById('prompt-text').value = text;
+    document.getElementById('copy-prompt-btn').textContent = '\uD83D\uDCCB Copy to Clipboard';
+    document.getElementById('prompt-modal').style.display = 'flex';
+    return;
+  }
+
+  S.busy = true;
+  const btn = document.getElementById('btn-summary');
+  const origLabel = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '\u23F3 Summarizing\u2026';
+  setStatus('running', 'Generating senior summary\u2026');
+  showState('loading');
+  document.getElementById('streaming-preview').textContent = '';
+  document.getElementById('loading-sub').textContent = 'Condensing analysis into senior summary\u2026';
+
+  let full = '';
+
+  try {
+    const userText = SUMMARY_USER + S.lastResult;
+    const preview = document.getElementById('streaming-preview');
+    const onChunk = chunk => {
+      full += chunk;
+      preview.textContent = full.slice(-800);
+      preview.scrollTop = preview.scrollHeight;
+    };
+
+    if (S.backend === 'anthropic') {
+      const key = document.getElementById('api-key').value.trim();
+      if (!key) throw new Error('Anthropic API key is required.');
+      const model = document.getElementById('ant-model').value;
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({ model, max_tokens: 4096, system: SUMMARY_SYSTEM, messages: [{ role: 'user', content: [{ type: 'text', text: userText }] }], stream: true })
+      });
+      if (!resp.ok) throw new Error('Anthropic error ' + resp.status + ': ' + await resp.text());
+      await readSSE(resp.body, line => {
+        if (!line.startsWith('data: ')) return;
+        const raw = line.slice(6);
+        if (raw === '[DONE]') return;
+        try {
+          const obj = JSON.parse(raw);
+          if (obj.type === 'content_block_delta' && obj.delta?.type === 'text_delta') onChunk(obj.delta.text);
+        } catch(e) {}
+      });
+    } else {
+      // Ollama
+      const ep = document.getElementById('ollama-ep').value.trim();
+      if (!ep) throw new Error('Ollama endpoint is required.');
+      let model = document.getElementById('ollama-model').value;
+      if (model === 'custom') {
+        model = document.getElementById('ollama-custom').value.trim();
+        if (!model) throw new Error('Custom Ollama model name is required.');
+      }
+      const resp = await fetch(ep, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, messages: [{ role: 'system', content: SUMMARY_SYSTEM }, { role: 'user', content: userText }], stream: true })
+      });
+      if (!resp.ok) throw new Error('Ollama error ' + resp.status + ': ' + await resp.text());
+      await readSSE(resp.body, line => {
+        if (!line.startsWith('data: ')) return;
+        const raw = line.slice(6).trim();
+        if (raw === '[DONE]') return;
+        try {
+          const obj = JSON.parse(raw);
+          const d = obj.choices?.[0]?.delta;
+          if (d?.content) onChunk(d.content);
+        } catch(e) {}
+      });
+    }
+
+    if (!full.trim()) throw new Error('No response received from the AI.');
+    renderResult(full);
+    setStatus('done', 'Senior summary complete');
+    document.getElementById('results-scroll').scrollTop = 0;
+
+  } catch(err) {
+    console.error(err);
+    showState('content');
+    document.getElementById('result-body').innerHTML =
+      '<div style="color:var(--risk-high-text);background:var(--risk-high-bg);border:1px solid var(--risk-high-border);border-radius:8px;padding:18px;">' +
+      '<strong>Summary Failed</strong><br><br>' + escHtml(err.message) + '</div>';
+    setStatus('error', 'Error');
+  } finally {
+    S.busy = false;
+    btn.disabled = false;
+    btn.innerHTML = origLabel;
+  }
 }
 
 /* ============================================================
