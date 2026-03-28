@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALTA Matter Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #2563EB;
+  --primary-light: #3B82F6;
+  --primary-dark: #1D4ED8;
+  --primary-bg: #EFF6FF;
+  --bg: #F8FAFC;
+  --card: #FFFFFF;
+  --text: #1E293B;
+  --text-muted: #64748B;
+  --text-light: #94A3B8;
+  --success: #10B981;
+  --success-bg: #ECFDF5;
+  --warning: #F59E0B;
+  --warning-bg: #FFFBEB;
+  --danger: #EF4444;
+  --danger-bg: #FEF2F2;
+  --border: #E2E8F0;
+  --border-light: #F1F5F9;
+  --sidebar-width: 240px;
+  --header-height: 60px;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.08), 0 4px 6px rgba(0,0,0,0.04);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); font-size:14px; line-height:1.5; }
+button { cursor:pointer; font-family:inherit; font-size:inherit; }
+input,select,textarea { font-family:inherit; font-size:inherit; }
+
+/* Sidebar */
+.sidebar {
+  position:fixed; left:0; top:0; bottom:0; width:var(--sidebar-width);
+  background:var(--card); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; z-index:100;
+}
+.sidebar-logo {
+  padding:20px 20px 16px; border-bottom:1px solid var(--border);
+  font-size:18px; font-weight:700; color:var(--primary); letter-spacing:-0.3px;
+}
+.sidebar-logo span { color:var(--text-muted); font-weight:400; font-size:12px; display:block; margin-top:2px; }
+.sidebar-nav { flex:1; padding:12px 8px; overflow-y:auto; }
+.nav-item {
+  display:flex; align-items:center; gap:10px; padding:10px 12px;
+  border-radius:var(--radius); color:var(--text-muted); font-weight:500;
+  transition:all 0.15s; cursor:pointer; margin-bottom:2px; border:none; background:none; width:100%; text-align:left;
+}
+.nav-item:hover { background:var(--bg); color:var(--text); }
+.nav-item.active { background:var(--primary-bg); color:var(--primary); }
+.nav-item svg { width:18px; height:18px; flex-shrink:0; }
+.nav-badge {
+  margin-left:auto; background:var(--border); color:var(--text-muted);
+  font-size:11px; font-weight:600; padding:1px 7px; border-radius:10px;
+}
+.nav-item.active .nav-badge { background:var(--primary); color:#fff; }
+.sidebar-footer { padding:12px 16px; border-top:1px solid var(--border); font-size:11px; color:var(--text-light); }
+
+/* Header */
+.header {
+  position:fixed; top:0; left:var(--sidebar-width); right:0; height:var(--header-height);
+  background:var(--card); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 24px; gap:16px; z-index:90;
+}
+.search-box {
+  flex:1; max-width:400px; position:relative;
+}
+.search-box input {
+  width:100%; padding:8px 12px 8px 36px; border:1px solid var(--border);
+  border-radius:var(--radius); background:var(--bg); outline:none; transition:all 0.15s;
+}
+.search-box input:focus { border-color:var(--primary); background:#fff; box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
+.search-box svg { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--text-light); width:16px; height:16px; }
+.header-actions { display:flex; align-items:center; gap:8px; margin-left:auto; }
+.btn {
+  display:inline-flex; align-items:center; gap:6px; padding:8px 16px;
+  border-radius:var(--radius); font-weight:500; border:1px solid var(--border);
+  background:#fff; color:var(--text); transition:all 0.15s;
+}
+.btn:hover { background:var(--bg); }
+.btn-primary { background:var(--primary); color:#fff; border-color:var(--primary); }
+.btn-primary:hover { background:var(--primary-dark); }
+.btn-danger { background:var(--danger); color:#fff; border-color:var(--danger); }
+.btn-danger:hover { background:#DC2626; }
+.btn-sm { padding:5px 10px; font-size:13px; }
+.btn svg { width:16px; height:16px; }
+
+/* Main Content */
+.main { margin-left:var(--sidebar-width); margin-top:var(--header-height); padding:24px; min-height:calc(100vh - var(--header-height)); }
+
+/* Cards */
+.stat-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
+.stat-card {
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:20px; box-shadow:var(--shadow);
+}
+.stat-card-label { font-size:12px; color:var(--text-muted); font-weight:500; text-transform:uppercase; letter-spacing:0.5px; }
+.stat-card-value { font-size:28px; font-weight:700; margin-top:4px; }
+.stat-card-value.danger { color:var(--danger); }
+.stat-card-value.warning { color:var(--warning); }
+.stat-card-value.success { color:var(--success); }
+
+/* Section */
+.section { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:20px; box-shadow:var(--shadow); }
+.section-title { font-size:16px; font-weight:600; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+
+/* Table */
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; }
+th { text-align:left; padding:10px 12px; font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; border-bottom:2px solid var(--border); cursor:pointer; white-space:nowrap; user-select:none; }
+th:hover { color:var(--text); }
+th .sort-arrow { margin-left:4px; font-size:10px; }
+td { padding:10px 12px; border-bottom:1px solid var(--border-light); }
+tr:hover td { background:var(--bg); }
+tr.clickable { cursor:pointer; }
+
+/* Badges */
+.badge { display:inline-block; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:500; }
+.badge-green { background:var(--success-bg); color:#059669; }
+.badge-yellow { background:var(--warning-bg); color:#D97706; }
+.badge-red { background:var(--danger-bg); color:var(--danger); }
+.badge-blue { background:var(--primary-bg); color:var(--primary); }
+.badge-gray { background:#F1F5F9; color:var(--text-muted); }
+
+/* Priority dot */
+.priority-dot { display:inline-block; width:8px; height:8px; border-radius:50%; }
+.priority-dot.high { background:var(--danger); }
+.priority-dot.medium { background:var(--warning); }
+.priority-dot.low { background:var(--success); }
+
+/* Progress bar */
+.progress-bar { width:80px; height:6px; background:var(--border); border-radius:3px; overflow:hidden; display:inline-block; vertical-align:middle; }
+.progress-fill { height:100%; background:var(--primary); border-radius:3px; transition:width 0.3s; }
+.progress-text { font-size:12px; color:var(--text-muted); margin-left:6px; }
+
+/* Filter bar */
+.filter-bar { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+.filter-bar select, .filter-bar input {
+  padding:6px 10px; border:1px solid var(--border); border-radius:var(--radius);
+  background:#fff; outline:none; font-size:13px;
+}
+.filter-bar select:focus, .filter-bar input:focus { border-color:var(--primary); }
+
+/* Modal */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200;
+  display:none; align-items:center; justify-content:center; backdrop-filter:blur(2px);
+}
+.modal-overlay.show { display:flex; }
+.modal {
+  background:var(--card); border-radius:12px; box-shadow:var(--shadow-lg);
+  width:90%; max-width:640px; max-height:85vh; overflow-y:auto; padding:24px;
+}
+.modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.modal-header h2 { font-size:18px; font-weight:600; }
+.modal-close { background:none; border:none; color:var(--text-muted); font-size:20px; padding:4px; }
+.modal-close:hover { color:var(--text); }
+
+/* Form */
+.form-group { margin-bottom:14px; }
+.form-label { display:block; font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.3px; }
+.form-input {
+  width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:var(--radius);
+  outline:none; transition:all 0.15s;
+}
+.form-input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
+textarea.form-input { resize:vertical; min-height:80px; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+/* Quick add */
+.quick-add-input {
+  width:100%; padding:14px 16px; border:2px solid var(--border); border-radius:var(--radius);
+  font-size:15px; outline:none; transition:all 0.15s;
+}
+.quick-add-input:focus { border-color:var(--primary); }
+.quick-add-hint { font-size:12px; color:var(--text-light); margin-top:8px; }
+.parsed-preview { margin-top:16px; padding:16px; background:var(--bg); border-radius:var(--radius); }
+.parsed-field { display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:13px; }
+.parsed-field strong { min-width:110px; color:var(--text-muted); }
+
+/* Detail view */
+.detail-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
+.detail-title { font-size:22px; font-weight:700; }
+.detail-meta { display:flex; gap:8px; align-items:center; margin-top:4px; }
+.info-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-bottom:20px; }
+.info-item label { display:block; font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.3px; margin-bottom:2px; }
+.info-item .info-value { padding:6px 0; font-size:14px; cursor:pointer; border-bottom:1px dashed transparent; }
+.info-item .info-value:hover { border-bottom-color:var(--border); }
+.info-item input, .info-item select {
+  width:100%; padding:6px 8px; border:1px solid var(--primary); border-radius:4px; outline:none;
+  font-size:14px; background:var(--primary-bg);
+}
+
+/* Phase sections */
+.phase-section { margin-bottom:12px; }
+.phase-header {
+  display:flex; align-items:center; gap:8px; padding:10px 12px;
+  background:var(--bg); border-radius:var(--radius); cursor:pointer; user-select:none;
+  font-weight:600; font-size:13px; color:var(--text-muted);
+}
+.phase-header:hover { background:var(--border-light); }
+.phase-chevron { transition:transform 0.2s; font-size:12px; }
+.phase-header.open .phase-chevron { transform:rotate(90deg); }
+.phase-count { margin-left:auto; font-size:12px; font-weight:400; }
+.phase-tasks { padding:4px 0 4px 12px; }
+.task-item {
+  display:flex; align-items:center; gap:8px; padding:8px 8px; border-radius:6px; transition:background 0.1s;
+}
+.task-item:hover { background:var(--bg); }
+.task-checkbox { width:16px; height:16px; accent-color:var(--primary); cursor:pointer; flex-shrink:0; }
+.task-text { flex:1; }
+.task-text.done { text-decoration:line-through; color:var(--text-light); }
+.task-due { font-size:12px; color:var(--text-muted); white-space:nowrap; }
+.task-due.overdue { color:var(--danger); font-weight:500; }
+.task-due.today { color:var(--warning); font-weight:500; }
+.subtasks { padding-left:32px; }
+.subtask-item { display:flex; align-items:center; gap:6px; padding:4px 0; font-size:13px; }
+.add-btn { display:inline-flex; align-items:center; gap:4px; color:var(--primary); font-size:13px; font-weight:500; background:none; border:none; padding:6px 4px; }
+.add-btn:hover { text-decoration:underline; }
+
+/* Calendar */
+.cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.cal-nav { display:flex; gap:8px; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.cal-day-name { padding:8px; text-align:center; font-size:12px; font-weight:600; color:var(--text-muted); background:var(--bg); }
+.cal-day {
+  min-height:80px; padding:6px; background:var(--card); font-size:12px; cursor:pointer; transition:background 0.1s;
+}
+.cal-day:hover { background:var(--bg); }
+.cal-day.other-month { color:var(--text-light); background:var(--border-light); }
+.cal-day.today { background:var(--primary-bg); }
+.cal-day-num { font-weight:600; margin-bottom:4px; }
+.cal-dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin:1px; }
+.cal-dot.closing { background:var(--primary); }
+.cal-dot.task { background:var(--warning); }
+.cal-dot.overdue { background:var(--danger); }
+.cal-event { font-size:10px; padding:1px 4px; border-radius:3px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; }
+.cal-event.closing { background:var(--primary-bg); color:var(--primary); }
+.cal-event.task { background:var(--warning-bg); color:#92400E; }
+
+/* Template cards */
+.template-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; }
+.template-card {
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:20px; box-shadow:var(--shadow); cursor:pointer; transition:all 0.15s;
+}
+.template-card:hover { border-color:var(--primary); box-shadow:var(--shadow-md); transform:translateY(-1px); }
+.template-card h3 { font-size:16px; margin-bottom:8px; }
+.template-card p { font-size:13px; color:var(--text-muted); margin-bottom:12px; }
+.template-phases { font-size:12px; color:var(--text-light); }
+
+/* Toast */
+.toast-container { position:fixed; bottom:20px; right:20px; z-index:300; display:flex; flex-direction:column; gap:8px; }
+.toast {
+  padding:12px 20px; background:var(--text); color:#fff; border-radius:var(--radius);
+  box-shadow:var(--shadow-lg); font-size:13px; font-weight:500;
+  animation:slideIn 0.2s ease; min-width:200px;
+}
+.toast.success { background:#059669; }
+.toast.error { background:var(--danger); }
+@keyframes slideIn { from { transform:translateX(40px); opacity:0; } to { transform:none; opacity:1; } }
+
+/* Empty state */
+.empty-state { text-align:center; padding:60px 20px; color:var(--text-muted); }
+.empty-state svg { width:48px; height:48px; margin-bottom:12px; color:var(--text-light); }
+.empty-state h3 { font-size:16px; margin-bottom:8px; color:var(--text); }
+.empty-state p { font-size:14px; }
+
+/* Deadline list */
+.deadline-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border-light); }
+.deadline-date { font-size:12px; font-weight:600; min-width:80px; }
+.deadline-date.overdue { color:var(--danger); }
+.deadline-date.today { color:var(--warning); }
+.deadline-date.upcoming { color:var(--primary); }
+.deadline-matter { font-size:12px; color:var(--text-muted); }
+.deadline-task { font-weight:500; }
+
+/* Matter cards */
+.matter-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; }
+.matter-card {
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:16px; box-shadow:var(--shadow); cursor:pointer; transition:all 0.15s;
+}
+.matter-card:hover { border-color:var(--primary); box-shadow:var(--shadow-md); }
+.matter-card h4 { font-size:14px; margin-bottom:4px; }
+.matter-card .mc-client { font-size:13px; color:var(--text-muted); margin-bottom:8px; }
+.matter-card .mc-row { display:flex; align-items:center; justify-content:space-between; margin-top:8px; }
+
+/* Confirm dialog */
+.confirm-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:250; display:none; align-items:center; justify-content:center; }
+.confirm-overlay.show { display:flex; }
+.confirm-box { background:#fff; border-radius:12px; padding:24px; max-width:400px; width:90%; box-shadow:var(--shadow-lg); text-align:center; }
+.confirm-box h3 { margin-bottom:8px; }
+.confirm-box p { color:var(--text-muted); margin-bottom:20px; font-size:14px; }
+.confirm-actions { display:flex; gap:10px; justify-content:center; }
+
+/* Parties table */
+.parties-table { width:100%; }
+.parties-table th { font-size:11px; padding:6px 8px; }
+.parties-table td { padding:6px 8px; font-size:13px; }
+.parties-table input { width:100%; padding:4px 6px; border:1px solid var(--border); border-radius:4px; font-size:13px; }
+.remove-btn { color:var(--danger); background:none; border:none; font-size:16px; font-weight:700; }
+.remove-btn:hover { color:#DC2626; }
+
+/* Inline edit */
+.inline-edit { cursor:pointer; border-bottom:1px dashed transparent; padding:2px 0; }
+.inline-edit:hover { border-bottom-color:var(--text-light); }
+
+/* Settings */
+.settings-section { margin-bottom:24px; }
+.settings-section h3 { font-size:15px; margin-bottom:8px; }
+.settings-section p { font-size:13px; color:var(--text-muted); margin-bottom:12px; }
+
+/* Back button */
+.back-btn { display:inline-flex; align-items:center; gap:4px; color:var(--text-muted); font-weight:500; background:none; border:none; padding:4px 0; margin-bottom:16px; font-size:14px; }
+.back-btn:hover { color:var(--text); }
+
+/* Responsive */
+@media(max-width:768px) {
+  .sidebar { width:60px; }
+  .sidebar-logo span, .nav-item span, .nav-badge, .sidebar-footer { display:none; }
+  .sidebar-logo { padding:16px; font-size:14px; text-align:center; }
+  .nav-item { justify-content:center; padding:10px; }
+  .main { margin-left:60px; }
+  .header { left:60px; }
+  .form-row { grid-template-columns:1fr; }
+  .info-grid { grid-template-columns:1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">ALTA <span>Matter Tracker</span></div>
+  <nav class="sidebar-nav">
+    <button class="nav-item active" data-view="dashboard" onclick="showView('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Dashboard</span>
+    </button>
+    <button class="nav-item" data-view="matters" onclick="showView('matters')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span>All Matters</span>
+      <span class="nav-badge" id="nav-matters-count">0</span>
+    </button>
+    <button class="nav-item" data-view="calendar" onclick="showView('calendar')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span>Calendar</span>
+    </button>
+    <button class="nav-item" data-view="templates" onclick="showView('templates')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+      <span>Templates</span>
+    </button>
+    <button class="nav-item" data-view="settings" onclick="showView('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      <span>Settings</span>
+    </button>
+  </nav>
+  <div class="sidebar-footer">Ctrl+N Quick Add &bull; Ctrl+F Search</div>
+</aside>
+
+<!-- Header -->
+<header class="header">
+  <div class="search-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="globalSearch" placeholder="Search matters, clients, addresses..." oninput="handleSearch(this.value)">
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-primary" onclick="openQuickAdd()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Quick Add
+    </button>
+  </div>
+</header>
+
+<!-- Main Content -->
+<main class="main">
+  <!-- Dashboard View -->
+  <div id="view-dashboard" class="view"></div>
+  <!-- All Matters View -->
+  <div id="view-matters" class="view" style="display:none"></div>
+  <!-- Matter Detail View -->
+  <div id="view-detail" class="view" style="display:none"></div>
+  <!-- Calendar View -->
+  <div id="view-calendar" class="view" style="display:none"></div>
+  <!-- Templates View -->
+  <div id="view-templates" class="view" style="display:none"></div>
+  <!-- Settings View -->
+  <div id="view-settings" class="view" style="display:none"></div>
+</main>
+
+<!-- Quick Add Modal -->
+<div class="modal-overlay" id="quickAddModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Quick Add Matter</h2>
+      <button class="modal-close" onclick="closeQuickAdd()">&times;</button>
+    </div>
+    <input type="text" class="quick-add-input" id="quickAddInput" placeholder='e.g., New purchase for Smith Corp at 123 Main St, closing June 15, high priority' onkeydown="if(event.key==='Enter')parseQuickAdd()">
+    <div class="quick-add-hint">Type a description and press Enter or click Parse. We'll extract the details automatically.</div>
+    <div id="quickAddPreview" style="display:none"></div>
+    <div style="margin-top:16px; display:flex; gap:8px; justify-content:flex-end;">
+      <button class="btn" onclick="closeQuickAdd()">Cancel</button>
+      <button class="btn btn-primary" id="quickAddParseBtn" onclick="parseQuickAdd()">Parse &amp; Preview</button>
+      <button class="btn btn-primary" id="quickAddSaveBtn" onclick="saveQuickAdd()" style="display:none">Save Matter</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="confirm-overlay" id="confirmDialog">
+  <div class="confirm-box">
+    <h3 id="confirmTitle">Confirm</h3>
+    <p id="confirmMsg">Are you sure?</p>
+    <div class="confirm-actions">
+      <button class="btn" onclick="closeConfirm(false)">Cancel</button>
+      <button class="btn btn-danger" onclick="closeConfirm(true)">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- File input for import -->
+<input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImport(event)">
+<script>
+// ======================== DATA LAYER ========================
+const STORAGE_KEY = 'alta_matters';
+const COUNTER_KEY = 'alta_counter';
+let matters = [];
+let currentView = 'dashboard';
+let currentDetailId = null;
+let previousView = 'dashboard';
+let calendarDate = new Date();
+let confirmCallback = null;
+let sortCol = 'number';
+let sortDir = 'asc';
+let parsedMatter = null;
+
+function uuid() {
+  return 'xxxx-xxxx-4xxx'.replace(/[xy]/g, c => {
+    const r = Math.random()*16|0;
+    return (c==='x' ? r : (r&0x3|0x8)).toString(16);
+  }) + '-' + Date.now().toString(36);
+}
+
+function loadData() {
+  try { matters = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e) { matters = []; }
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(matters));
+  updateNavCounts();
+}
+
+function getCounter() {
+  let c = parseInt(localStorage.getItem(COUNTER_KEY)) || 0;
+  c++;
+  localStorage.setItem(COUNTER_KEY, c.toString());
+  return c;
+}
+
+function getMatter(id) { return matters.find(m => m.id === id); }
+
+function addMatter(m) {
+  m.id = m.id || uuid();
+  m.number = m.number || getCounter();
+  m.createdAt = m.createdAt || new Date().toISOString();
+  m.updatedAt = new Date().toISOString();
+  m.tasks = m.tasks || [];
+  m.parties = m.parties || [];
+  m.notes = m.notes || '';
+  m.status = m.status || 'Active';
+  m.priority = m.priority || 'Medium';
+  m.openedDate = m.openedDate || new Date().toISOString().split('T')[0];
+  matters.unshift(m);
+  saveData();
+  return m;
+}
+
+function updateMatter(id, updates) {
+  const m = getMatter(id);
+  if (!m) return;
+  Object.assign(m, updates, { updatedAt: new Date().toISOString() });
+  saveData();
+}
+
+function deleteMatter(id) {
+  matters = matters.filter(m => m.id !== id);
+  saveData();
+}
+
+function updateNavCounts() {
+  const active = matters.filter(m => m.status !== 'Closed').length;
+  document.getElementById('nav-matters-count').textContent = matters.length;
+}
+
+// ======================== DATE HELPERS ========================
+function today() { return new Date().toISOString().split('T')[0]; }
+function isToday(d) { return d === today(); }
+function isOverdue(d) { return d && d < today(); }
+function isFuture(d) { return d && d > today(); }
+function isThisWeek(d) {
+  if (!d) return false;
+  const t = new Date(); const dt = new Date(d + 'T12:00:00');
+  const weekEnd = new Date(t); weekEnd.setDate(t.getDate() + 7);
+  return dt >= t && dt <= weekEnd;
+}
+function formatDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d + 'T12:00:00');
+  return dt.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+}
+function daysUntil(d) {
+  if (!d) return null;
+  const t = new Date(today()); const dt = new Date(d);
+  return Math.ceil((dt - t) / 86400000);
+}
+
+// ======================== TOAST ========================
+function toast(msg, type='') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ======================== CONFIRM ========================
+function showConfirm(title, msg) {
+  return new Promise(resolve => {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMsg').textContent = msg;
+    document.getElementById('confirmDialog').classList.add('show');
+    confirmCallback = resolve;
+  });
+}
+function closeConfirm(result) {
+  document.getElementById('confirmDialog').classList.remove('show');
+  if (confirmCallback) { confirmCallback(result); confirmCallback = null; }
+}
+
+// ======================== VIEW SWITCHING ========================
+function showView(view, skipHistory) {
+  if (view !== 'detail') previousView = currentView;
+  currentView = view;
+  document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+  document.getElementById('view-' + view).style.display = 'block';
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === view));
+  renderCurrentView();
+}
+
+function renderCurrentView() {
+  switch(currentView) {
+    case 'dashboard': renderDashboard(); break;
+    case 'matters': renderMatters(); break;
+    case 'detail': renderDetail(); break;
+    case 'calendar': renderCalendar(); break;
+    case 'templates': renderTemplates(); break;
+    case 'settings': renderSettings(); break;
+  }
+}
+
+function openDetail(id) {
+  currentDetailId = id;
+  showView('detail');
+}
+
+function goBack() {
+  showView(previousView || 'matters');
+}
+
+// ======================== DASHBOARD ========================
+function renderDashboard() {
+  const el = document.getElementById('view-dashboard');
+  const active = matters.filter(m => m.status === 'Active');
+  const allTasks = [];
+  matters.forEach(m => {
+    if (m.status === 'Closed') return;
+    (m.tasks||[]).forEach(t => {
+      if (!t.completed) allTasks.push({ ...t, matterName: m.matterName, matterId: m.id, clientName: m.clientName });
+    });
+  });
+  const dueToday = allTasks.filter(t => isToday(t.dueDate));
+  const overdue = allTasks.filter(t => isOverdue(t.dueDate));
+  const closingsThisWeek = matters.filter(m => m.status !== 'Closed' && isThisWeek(m.closingDate));
+  const upcoming = allTasks.filter(t => t.dueDate && !isOverdue(t.dueDate) && isThisWeek(t.dueDate))
+    .concat(overdue)
+    .sort((a,b) => (a.dueDate||'z').localeCompare(b.dueDate||'z'));
+  const recent = [...matters].sort((a,b) => (b.updatedAt||'').localeCompare(a.updatedAt||'')).slice(0,5);
+
+  el.innerHTML = `
+    <h1 style="font-size:24px;font-weight:700;margin-bottom:20px;">Dashboard</h1>
+    <div class="stat-cards">
+      <div class="stat-card">
+        <div class="stat-card-label">Active Matters</div>
+        <div class="stat-card-value">${active.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Tasks Due Today</div>
+        <div class="stat-card-value ${dueToday.length?'warning':''}">${dueToday.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Overdue Tasks</div>
+        <div class="stat-card-value ${overdue.length?'danger':''}">${overdue.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Closings This Week</div>
+        <div class="stat-card-value ${closingsThisWeek.length?'success':''}">${closingsThisWeek.length}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div class="section">
+        <div class="section-title">Upcoming Deadlines</div>
+        ${upcoming.length === 0 ? '<div style="color:var(--text-muted);font-size:13px;">No upcoming deadlines</div>' :
+          upcoming.slice(0,10).map(t => {
+            const cls = isOverdue(t.dueDate) ? 'overdue' : isToday(t.dueDate) ? 'today' : 'upcoming';
+            return `<div class="deadline-item" onclick="openDetail('${t.matterId}')" style="cursor:pointer">
+              <div class="deadline-date ${cls}">${formatDate(t.dueDate)}</div>
+              <div><div class="deadline-task">${esc(t.text)}</div><div class="deadline-matter">${esc(t.matterName)} &mdash; ${esc(t.clientName)}</div></div>
+            </div>`;
+          }).join('')}
+      </div>
+      <div class="section">
+        <div class="section-title">Recent Matters</div>
+        ${recent.length === 0 ? `<div class="empty-state"><h3>No matters yet</h3><p>Click Quick Add (Ctrl+N) to create your first matter.</p></div>` :
+          `<div class="matter-cards">${recent.map(m => renderMatterCard(m)).join('')}</div>`}
+      </div>
+    </div>`;
+}
+
+function renderMatterCard(m) {
+  const total = (m.tasks||[]).length;
+  const done = (m.tasks||[]).filter(t=>t.completed).length;
+  const pct = total ? Math.round(done/total*100) : 0;
+  return `<div class="matter-card" onclick="openDetail('${m.id}')">
+    <h4>${esc(m.matterName || 'Untitled')}</h4>
+    <div class="mc-client">${esc(m.clientName || '—')}</div>
+    <div class="mc-row">
+      ${statusBadge(m.status)}
+      <span style="font-size:12px;color:var(--text-muted)">${formatDate(m.closingDate)}</span>
+    </div>
+    <div class="mc-row" style="margin-top:6px">
+      <div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><span class="progress-text">${done}/${total}</span></div>
+      <span class="priority-dot ${(m.priority||'medium').toLowerCase()}" title="${m.priority}"></span>
+    </div>
+  </div>`;
+}
+
+// ======================== ALL MATTERS TABLE ========================
+function renderMatters() {
+  const el = document.getElementById('view-matters');
+  let filtered = [...matters];
+  const sf = document.getElementById('filter-status');
+  const tf = document.getElementById('filter-type');
+  const pf = document.getElementById('filter-priority');
+  const search = document.getElementById('filter-search');
+
+  // Build HTML with filter bar
+  let html = `<h1 style="font-size:24px;font-weight:700;margin-bottom:20px;">All Matters</h1>
+    <div class="filter-bar">
+      <select id="filter-status" onchange="renderMatters()">
+        <option value="">All Status</option>
+        <option value="Active">Active</option>
+        <option value="Pending">Pending</option>
+        <option value="On Hold">On Hold</option>
+        <option value="Closed">Closed</option>
+      </select>
+      <select id="filter-type" onchange="renderMatters()">
+        <option value="">All Types</option>
+        <option value="Purchase">Purchase</option>
+        <option value="Sale">Sale</option>
+        <option value="Lease">Lease</option>
+        <option value="Refinance">Refinance</option>
+        <option value="Development">Development</option>
+        <option value="1031 Exchange">1031 Exchange</option>
+        <option value="Other">Other</option>
+      </select>
+      <select id="filter-priority" onchange="renderMatters()">
+        <option value="">All Priority</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+      <input type="text" id="filter-search" placeholder="Search..." oninput="renderMatters()" style="flex:1;min-width:150px;">
+    </div>`;
+
+  // Reapply filter values
+  el.innerHTML = html;
+  if (sf) document.getElementById('filter-status').value = sf.value;
+  if (tf) document.getElementById('filter-type').value = tf.value;
+  if (pf) document.getElementById('filter-priority').value = pf.value;
+  if (search) document.getElementById('filter-search').value = search.value;
+
+  // Filter
+  const sv = document.getElementById('filter-status').value;
+  const tv = document.getElementById('filter-type').value;
+  const pv = document.getElementById('filter-priority').value;
+  const searchV = document.getElementById('filter-search').value.toLowerCase();
+  if (sv) filtered = filtered.filter(m => m.status === sv);
+  if (tv) filtered = filtered.filter(m => m.matterType === tv);
+  if (pv) filtered = filtered.filter(m => m.priority === pv);
+  if (searchV) filtered = filtered.filter(m =>
+    (m.matterName||'').toLowerCase().includes(searchV) ||
+    (m.clientName||'').toLowerCase().includes(searchV) ||
+    (m.propertyAddress||'').toLowerCase().includes(searchV) ||
+    (m.clientMatterNumber||'').toLowerCase().includes(searchV)
+  );
+
+  // Sort
+  filtered.sort((a,b) => {
+    let va = a[sortCol] || '', vb = b[sortCol] || '';
+    if (sortCol === 'number') { va = a.number||0; vb = b.number||0; }
+    if (sortCol === 'progress') {
+      const ta = (a.tasks||[]).length || 1, tb = (b.tasks||[]).length || 1;
+      va = (a.tasks||[]).filter(t=>t.completed).length / ta;
+      vb = (b.tasks||[]).filter(t=>t.completed).length / tb;
+    }
+    if (typeof va === 'number') return sortDir === 'asc' ? va - vb : vb - va;
+    return sortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+  });
+
+  const arrow = col => sortCol === col ? (sortDir === 'asc' ? ' &#9650;' : ' &#9660;') : '';
+
+  if (filtered.length === 0) {
+    el.innerHTML += `<div class="section"><div class="empty-state"><h3>No matters found</h3><p>${matters.length === 0 ? 'Click Quick Add (Ctrl+N) to create your first matter.' : 'Try adjusting your filters.'}</p></div></div>`;
+    return;
+  }
+
+  el.innerHTML += `<div class="section"><div class="table-wrap"><table>
+    <thead><tr>
+      <th onclick="setSort('number')">#${arrow('number')}</th>
+      <th onclick="setSort('clientMatterNumber')">Client/Matter#${arrow('clientMatterNumber')}</th>
+      <th onclick="setSort('clientName')">Client Name${arrow('clientName')}</th>
+      <th onclick="setSort('matterName')">Matter Name${arrow('matterName')}</th>
+      <th onclick="setSort('matterType')">Type${arrow('matterType')}</th>
+      <th onclick="setSort('status')">Status${arrow('status')}</th>
+      <th onclick="setSort('priority')">Priority${arrow('priority')}</th>
+      <th onclick="setSort('assignee')">Assignee${arrow('assignee')}</th>
+      <th onclick="setSort('closingDate')">Closing Date${arrow('closingDate')}</th>
+      <th onclick="setSort('progress')">Progress${arrow('progress')}</th>
+    </tr></thead>
+    <tbody>${filtered.map(m => {
+      const total = (m.tasks||[]).length;
+      const done = (m.tasks||[]).filter(t=>t.completed).length;
+      const pct = total ? Math.round(done/total*100) : 0;
+      return `<tr class="clickable" onclick="openDetail('${m.id}')">
+        <td>${m.number}</td>
+        <td>${esc(m.clientMatterNumber||'—')}</td>
+        <td>${esc(m.clientName||'—')}</td>
+        <td><strong>${esc(m.matterName||'Untitled')}</strong></td>
+        <td>${esc(m.matterType||'—')}</td>
+        <td>${statusBadge(m.status)}</td>
+        <td><span class="priority-dot ${(m.priority||'medium').toLowerCase()}" title="${m.priority||'Medium'}"></span> ${m.priority||'Medium'}</td>
+        <td>${esc(m.assignee||'—')}</td>
+        <td>${formatDate(m.closingDate)}</td>
+        <td><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><span class="progress-text">${done}/${total}</span></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div></div>`;
+}
+
+function setSort(col) {
+  if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortCol = col; sortDir = 'asc'; }
+  renderMatters();
+}
+
+// ======================== MATTER DETAIL ========================
+function renderDetail() {
+  const el = document.getElementById('view-detail');
+  const m = getMatter(currentDetailId);
+  if (!m) { goBack(); return; }
+  const phases = ['Pre-Contract','Due Diligence','Contract','Pre-Closing','Closing','Post-Closing'];
+
+  el.innerHTML = `
+    <button class="back-btn" onclick="goBack()">&larr; Back</button>
+    <div class="detail-header">
+      <div>
+        <div class="detail-title">${esc(m.matterName||'Untitled')}</div>
+        <div class="detail-meta">
+          ${statusBadge(m.status)}
+          <span class="priority-dot ${(m.priority||'medium').toLowerCase()}"></span>
+          <span style="font-size:13px;color:var(--text-muted)">${m.priority||'Medium'} Priority</span>
+          <span style="font-size:13px;color:var(--text-muted)">&bull; #${m.number}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="editMatterModal('${m.id}')">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="confirmDeleteMatter('${m.id}')">Delete</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="info-grid">
+        ${infoField(m,'clientName','Client Name')}
+        ${infoField(m,'clientMatterNumber','Client/Matter #')}
+        ${infoField(m,'propertyAddress','Property Address')}
+        ${infoField(m,'matterType','Matter Type','select',['Purchase','Sale','Lease','Refinance','Development','1031 Exchange','Other'])}
+        ${infoField(m,'closingDate','Closing Date','date')}
+        ${infoField(m,'assignee','Assignee')}
+        ${infoField(m,'openedDate','Opened Date','date')}
+        ${infoField(m,'status','Status','select',['Active','Pending','On Hold','Closed'])}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Parties
+        <button class="add-btn" onclick="addParty('${m.id}')" style="margin-left:auto">+ Add Party</button>
+      </div>
+      ${m.parties && m.parties.length > 0 ? `
+        <table class="parties-table">
+          <thead><tr><th>Name</th><th>Role</th><th>Contact</th><th></th></tr></thead>
+          <tbody>${m.parties.map((p,i) => `<tr>
+            <td><input value="${esc(p.name)}" onchange="updateParty('${m.id}',${i},'name',this.value)"></td>
+            <td><input value="${esc(p.role)}" onchange="updateParty('${m.id}',${i},'role',this.value)" placeholder="e.g., Buyer, Seller, Lender"></td>
+            <td><input value="${esc(p.contact)}" onchange="updateParty('${m.id}',${i},'contact',this.value)" placeholder="Email or phone"></td>
+            <td><button class="remove-btn" onclick="removeParty('${m.id}',${i})">&times;</button></td>
+          </tr>`).join('')}</tbody>
+        </table>` : '<div style="color:var(--text-muted);font-size:13px;">No parties added yet.</div>'}
+    </div>
+
+    <div class="section">
+      <div class="section-title">Tasks
+        <button class="add-btn" onclick="showApplyTemplate('${m.id}')" style="margin-left:auto">Apply Template</button>
+      </div>
+      ${phases.map(phase => {
+        const phaseTasks = (m.tasks||[]).filter(t => t.phase === phase);
+        const doneCount = phaseTasks.filter(t=>t.completed).length;
+        return `<div class="phase-section">
+          <div class="phase-header ${phaseTasks.length > 0 ? 'open' : ''}" onclick="this.classList.toggle('open');this.nextElementSibling.style.display=this.classList.contains('open')?'block':'none'">
+            <span class="phase-chevron">&#9654;</span>
+            ${phase}
+            <span class="phase-count">${doneCount}/${phaseTasks.length}</span>
+          </div>
+          <div class="phase-tasks" style="display:${phaseTasks.length > 0 ? 'block' : 'none'}">
+            ${phaseTasks.map(t => renderTaskItem(m.id, t)).join('')}
+            <button class="add-btn" onclick="addTask('${m.id}','${phase}')">+ Add task</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="section">
+      <div class="section-title">Notes</div>
+      <textarea class="form-input" rows="4" onchange="updateMatter('${m.id}',{notes:this.value});toast('Notes saved','success')">${esc(m.notes||'')}</textarea>
+    </div>`;
+}
+
+function renderTaskItem(matterId, t) {
+  const dueCls = isOverdue(t.dueDate) ? 'overdue' : isToday(t.dueDate) ? 'today' : '';
+  return `<div class="task-item">
+    <input type="checkbox" class="task-checkbox" ${t.completed?'checked':''} onchange="toggleTask('${matterId}','${t.id}',this.checked)">
+    <span class="task-text ${t.completed?'done':''}" ondblclick="editTaskText('${matterId}','${t.id}',this)">${esc(t.text)}</span>
+    ${t.dueDate ? `<span class="task-due ${dueCls}">${formatDate(t.dueDate)}</span>` : ''}
+    <button class="remove-btn" onclick="removeTask('${matterId}','${t.id}')" title="Remove">&times;</button>
+  </div>
+  ${(t.subtasks||[]).length > 0 ? `<div class="subtasks">${t.subtasks.map(s => `
+    <div class="subtask-item">
+      <input type="checkbox" class="task-checkbox" ${s.completed?'checked':''} onchange="toggleSubtask('${matterId}','${t.id}','${s.id}',this.checked)">
+      <span class="${s.completed?'task-text done':'task-text'}">${esc(s.text)}</span>
+      <button class="remove-btn" onclick="removeSubtask('${matterId}','${t.id}','${s.id}')" style="font-size:14px">&times;</button>
+    </div>`).join('')}</div>` : ''}
+  <div class="subtasks"><button class="add-btn" onclick="addSubtask('${matterId}','${t.id}')" style="font-size:12px">+ subtask</button></div>`;
+}
+
+function infoField(m, key, label, type, options) {
+  const val = m[key] || '';
+  if (type === 'select') {
+    return `<div class="info-item"><label>${label}</label>
+      <select class="form-input" onchange="updateMatter('${m.id}',{${key}:this.value});renderDetail()">
+        ${options.map(o => `<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')}
+      </select></div>`;
+  }
+  if (type === 'date') {
+    return `<div class="info-item"><label>${label}</label>
+      <input type="date" class="form-input" value="${val}" onchange="updateMatter('${m.id}',{${key}:this.value});renderDetail()"></div>`;
+  }
+  return `<div class="info-item"><label>${label}</label>
+    <input type="text" class="form-input" value="${esc(val)}" placeholder="—" onchange="updateMatter('${m.id}',{${key}:this.value})"></div>`;
+}
+
+// ======================== TASK OPERATIONS ========================
+function toggleTask(matterId, taskId, checked) {
+  const m = getMatter(matterId);
+  const t = m.tasks.find(t => t.id === taskId);
+  if (t) { t.completed = checked; saveData(); renderDetail(); }
+}
+
+function toggleSubtask(matterId, taskId, subId, checked) {
+  const m = getMatter(matterId);
+  const t = m.tasks.find(t => t.id === taskId);
+  const s = (t.subtasks||[]).find(s => s.id === subId);
+  if (s) { s.completed = checked; saveData(); renderDetail(); }
+}
+
+function addTask(matterId, phase) {
+  const text = prompt('Task description:');
+  if (!text) return;
+  const dueStr = prompt('Due date (YYYY-MM-DD or leave blank):');
+  const m = getMatter(matterId);
+  m.tasks.push({ id: uuid(), text, phase, completed: false, dueDate: dueStr || '', assignee: '', subtasks: [] });
+  saveData(); renderDetail(); toast('Task added', 'success');
+}
+
+function removeTask(matterId, taskId) {
+  const m = getMatter(matterId);
+  m.tasks = m.tasks.filter(t => t.id !== taskId);
+  saveData(); renderDetail(); toast('Task removed');
+}
+
+function editTaskText(matterId, taskId, el) {
+  const m = getMatter(matterId);
+  const t = m.tasks.find(t => t.id === taskId);
+  const input = document.createElement('input');
+  input.type = 'text'; input.value = t.text; input.className = 'form-input';
+  input.style.padding = '2px 6px'; input.style.fontSize = '14px';
+  const finish = () => { t.text = input.value; saveData(); renderDetail(); };
+  input.onblur = finish;
+  input.onkeydown = e => { if (e.key === 'Enter') finish(); if (e.key === 'Escape') renderDetail(); };
+  el.replaceWith(input); input.focus(); input.select();
+}
+
+function addSubtask(matterId, taskId) {
+  const text = prompt('Subtask description:');
+  if (!text) return;
+  const m = getMatter(matterId);
+  const t = m.tasks.find(t => t.id === taskId);
+  if (!t.subtasks) t.subtasks = [];
+  t.subtasks.push({ id: uuid(), text, completed: false });
+  saveData(); renderDetail();
+}
+
+function removeSubtask(matterId, taskId, subId) {
+  const m = getMatter(matterId);
+  const t = m.tasks.find(t => t.id === taskId);
+  t.subtasks = (t.subtasks||[]).filter(s => s.id !== subId);
+  saveData(); renderDetail();
+}
+
+// ======================== PARTIES ========================
+function addParty(matterId) {
+  const m = getMatter(matterId);
+  if (!m.parties) m.parties = [];
+  m.parties.push({ name: '', role: '', contact: '' });
+  saveData(); renderDetail();
+}
+function updateParty(matterId, idx, field, value) {
+  const m = getMatter(matterId);
+  m.parties[idx][field] = value;
+  saveData();
+}
+function removeParty(matterId, idx) {
+  const m = getMatter(matterId);
+  m.parties.splice(idx, 1);
+  saveData(); renderDetail();
+}
+
+async function confirmDeleteMatter(id) {
+  const ok = await showConfirm('Delete Matter', 'This will permanently delete this matter and all its tasks. Continue?');
+  if (ok) { deleteMatter(id); goBack(); toast('Matter deleted'); }
+}
+
+// ======================== QUICK ADD + NLP PARSER ========================
+function openQuickAdd() {
+  document.getElementById('quickAddModal').classList.add('show');
+  document.getElementById('quickAddInput').value = '';
+  document.getElementById('quickAddPreview').style.display = 'none';
+  document.getElementById('quickAddParseBtn').style.display = '';
+  document.getElementById('quickAddSaveBtn').style.display = 'none';
+  parsedMatter = null;
+  setTimeout(() => document.getElementById('quickAddInput').focus(), 100);
+}
+function closeQuickAdd() {
+  document.getElementById('quickAddModal').classList.remove('show');
+  parsedMatter = null;
+}
+
+function parseQuickAdd() {
+  const raw = document.getElementById('quickAddInput').value.trim();
+  if (!raw) return;
+  parsedMatter = parseNaturalLanguage(raw);
+  renderQuickAddPreview();
+}
+
+function parseNaturalLanguage(text) {
+  const result = { clientName:'', matterName:'', matterType:'', propertyAddress:'', closingDate:'', priority:'Medium', assignee:'', clientMatterNumber:'', status:'Active' };
+
+  // Matter type
+  const lower = text.toLowerCase();
+  if (/\b(purchase|buy|acquire|acquisition|buying)\b/.test(lower)) result.matterType = 'Purchase';
+  else if (/\b(sell|sale|disposition|selling)\b/.test(lower)) result.matterType = 'Sale';
+  else if (/\b(lease|leasing|rent|rental)\b/.test(lower)) result.matterType = 'Lease';
+  else if (/\b(refinance|refi|refinancing)\b/.test(lower)) result.matterType = 'Refinance';
+  else if (/\b(1031|exchange|like.kind)\b/.test(lower)) result.matterType = '1031 Exchange';
+  else if (/\b(develop|development|construction|build)\b/.test(lower)) result.matterType = 'Development';
+
+  // Priority
+  if (/\b(urgent|high\s*priority|asap|rush|critical)\b/.test(lower)) result.priority = 'High';
+  else if (/\b(low\s*priority|low\s*urgency|not\s*urgent)\b/.test(lower)) result.priority = 'Low';
+
+  // Client name — "for [Name]" or "client [Name]"
+  let clientMatch = text.match(/\bfor\s+([A-Z][a-zA-Z&',.\-]+(?:\s+[A-Z][a-zA-Z&',.\-]+){0,4})/);
+  if (!clientMatch) clientMatch = text.match(/\bclient\s+(?:is\s+)?([A-Z][a-zA-Z&',.\-]+(?:\s+[A-Z][a-zA-Z&',.\-]+){0,4})/);
+  if (clientMatch) {
+    let name = clientMatch[1];
+    // Strip trailing keywords
+    name = name.replace(/\s+(at|on|closing|due|with|high|low|medium|priority|urgent|asap|property).*$/i, '').trim();
+    result.clientName = name;
+  }
+
+  // Property address — number + street
+  const addrMatch = text.match(/\b(\d{1,6}\s+(?:[NSEW]\.?\s+)?(?:[A-Z][a-zA-Z]+\.?\s+){1,4}(?:Street|St|Avenue|Ave|Boulevard|Blvd|Drive|Dr|Road|Rd|Lane|Ln|Way|Court|Ct|Place|Pl|Circle|Cir|Highway|Hwy|Parkway|Pkwy)\.?(?:\s*,?\s*(?:Suite|Ste|Unit|Apt|#)\s*\w+)?)/i);
+  if (addrMatch) {
+    result.propertyAddress = addrMatch[1].trim();
+  }
+
+  // Closing date
+  const dateResult = parseDateFromText(text);
+  if (dateResult) result.closingDate = dateResult;
+
+  // Matter name — compose from parts
+  if (result.propertyAddress && result.matterType) {
+    result.matterName = result.propertyAddress + ' ' + result.matterType;
+  } else if (result.clientName && result.matterType) {
+    result.matterName = result.clientName + ' ' + result.matterType;
+  } else if (result.propertyAddress) {
+    result.matterName = result.propertyAddress;
+  } else if (result.clientName) {
+    result.matterName = result.clientName + ' Matter';
+  } else {
+    result.matterName = text.substring(0, 50);
+  }
+
+  return result;
+}
+
+function parseDateFromText(text) {
+  const lower = text.toLowerCase();
+  const now = new Date();
+
+  // Explicit dates: 12/15/2026, 12-15-2026
+  let m = text.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/);
+  if (m) return `${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;
+
+  // YYYY-MM-DD
+  m = text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+  if (m) return m[0];
+
+  // "Month Day" or "Month Day, Year"
+  const months = {january:0,february:1,march:2,april:3,may:4,june:5,july:6,august:7,september:8,october:9,november:10,december:11,
+    jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  m = lower.match(/\b(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\s+(\d{1,2})(?:\s*,?\s*(\d{4}))?\b/);
+  if (m) {
+    const mo = months[m[1]];
+    const day = parseInt(m[2]);
+    let year = m[3] ? parseInt(m[3]) : now.getFullYear();
+    const d = new Date(year, mo, day);
+    if (d < now && !m[3]) d.setFullYear(d.getFullYear() + 1);
+    return d.toISOString().split('T')[0];
+  }
+
+  // "in X days/weeks/months"
+  m = lower.match(/\bin\s+(\d+)\s+(day|week|month)s?\b/);
+  if (m) {
+    const d = new Date(now);
+    const n = parseInt(m[1]);
+    if (m[2]==='day') d.setDate(d.getDate()+n);
+    else if (m[2]==='week') d.setDate(d.getDate()+n*7);
+    else if (m[2]==='month') d.setMonth(d.getMonth()+n);
+    return d.toISOString().split('T')[0];
+  }
+
+  // "next Monday/Tuesday/etc"
+  const days = {sunday:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6};
+  m = lower.match(/\bnext\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/);
+  if (m) {
+    const target = days[m[1]];
+    const d = new Date(now);
+    d.setDate(d.getDate() + ((target + 7 - d.getDay()) % 7 || 7));
+    return d.toISOString().split('T')[0];
+  }
+
+  // "tomorrow"
+  if (/\btomorrow\b/.test(lower)) {
+    const d = new Date(now); d.setDate(d.getDate()+1);
+    return d.toISOString().split('T')[0];
+  }
+
+  // "closing [date phrase]" — try to pick up a date after "closing"
+  m = lower.match(/\bclosing\s+(?:on\s+)?(?:the\s+)?(.+?)(?:\s*,|\s+(?:high|low|medium|urgent|priority|asap)|$)/);
+  if (m) {
+    const sub = m[1];
+    const subResult = parseDateFromText(sub);
+    if (subResult) return subResult;
+  }
+
+  return '';
+}
+
+function renderQuickAddPreview() {
+  const p = parsedMatter;
+  const el = document.getElementById('quickAddPreview');
+  el.style.display = 'block';
+  el.innerHTML = `<div class="parsed-preview">
+    <h3 style="font-size:14px;margin-bottom:12px;color:var(--text-muted)">Parsed Fields (edit before saving):</h3>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Matter Name</label><input class="form-input" value="${esc(p.matterName)}" onchange="parsedMatter.matterName=this.value"></div>
+      <div class="form-group"><label class="form-label">Client Name</label><input class="form-input" value="${esc(p.clientName)}" onchange="parsedMatter.clientName=this.value"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Matter Type</label>
+        <select class="form-input" onchange="parsedMatter.matterType=this.value">
+          <option value="">—</option>
+          ${['Purchase','Sale','Lease','Refinance','Development','1031 Exchange','Other'].map(t => `<option value="${t}" ${p.matterType===t?'selected':''}>${t}</option>`).join('')}
+        </select></div>
+      <div class="form-group"><label class="form-label">Priority</label>
+        <select class="form-input" onchange="parsedMatter.priority=this.value">
+          ${['High','Medium','Low'].map(pr => `<option value="${pr}" ${p.priority===pr?'selected':''}>${pr}</option>`).join('')}
+        </select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Property Address</label><input class="form-input" value="${esc(p.propertyAddress)}" onchange="parsedMatter.propertyAddress=this.value"></div>
+      <div class="form-group"><label class="form-label">Closing Date</label><input type="date" class="form-input" value="${p.closingDate}" onchange="parsedMatter.closingDate=this.value"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Client/Matter #</label><input class="form-input" value="${esc(p.clientMatterNumber)}" onchange="parsedMatter.clientMatterNumber=this.value"></div>
+      <div class="form-group"><label class="form-label">Assignee</label><input class="form-input" value="${esc(p.assignee)}" onchange="parsedMatter.assignee=this.value"></div>
+    </div>
+    <div class="form-group" style="margin-top:8px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+        <input type="checkbox" id="qaApplyTemplate" checked> Auto-apply ${p.matterType||'matching'} template tasks
+      </label>
+    </div>
+  </div>`;
+  document.getElementById('quickAddParseBtn').style.display = 'none';
+  document.getElementById('quickAddSaveBtn').style.display = '';
+}
+
+function saveQuickAdd() {
+  if (!parsedMatter) return;
+  const m = addMatter({...parsedMatter});
+  // Apply template if checkbox checked and type matches
+  const applyTpl = document.getElementById('qaApplyTemplate');
+  if (applyTpl && applyTpl.checked && m.matterType && TEMPLATES[m.matterType]) {
+    applyTemplate(m.id, m.matterType);
+  }
+  closeQuickAdd();
+  toast('Matter "' + m.matterName + '" created!', 'success');
+  openDetail(m.id);
+}
+
+// ======================== TEMPLATES ========================
+const TEMPLATES = {
+  Purchase: {
+    name: 'Purchase / Acquisition',
+    description: 'Standard real estate purchase transaction with full due diligence, title review, and closing.',
+    phases: {
+      'Pre-Contract': ['Review Letter of Intent (LOI)', 'Draft/Review Purchase & Sale Agreement', 'Negotiate PSA terms', 'Review entity formation documents'],
+      'Due Diligence': ['Order title search', 'Review title commitment', 'Order ALTA survey', 'Review survey', 'Environmental review (Phase I ESA)', 'Zoning verification / compliance', 'Review existing leases & tenancies', 'Financial analysis / underwriting review', 'Review estoppel certificates', 'Inspect permits & violations', 'Review insurance requirements'],
+      'Pre-Closing': ['Prepare title objection letter', 'Prepare closing checklist', 'Review loan/financing documents', 'Prepare transfer documents (deed, bill of sale)', 'Coordinate with title company', 'Obtain tenant estoppels', 'Prepare assignment of leases', 'Review title insurance commitment / proforma', 'Prepare closing statement review'],
+      'Closing': ['Final walkthrough coordination', 'Review settlement statement / HUD-1', 'Execute closing documents', 'Fund transaction', 'Record deed and mortgage'],
+      'Post-Closing': ['Confirm recording of documents', 'Obtain final title insurance policy', 'Final document distribution to all parties', 'Update entity records', 'Close matter file']
+    }
+  },
+  Sale: {
+    name: 'Sale / Disposition',
+    description: 'Representing the seller in a real estate sale, including disclosure compliance and closing.',
+    phases: {
+      'Pre-Contract': ['Review Letter of Intent (LOI)', 'Draft/Review Purchase & Sale Agreement (seller perspective)', 'Negotiate PSA terms', 'Prepare seller disclosure documents'],
+      'Due Diligence': ['Compile property documents for buyer', 'Prepare rent roll', 'Gather service contracts', 'Prepare tenant estoppels', 'Address title objections', 'Coordinate property access for inspections'],
+      'Pre-Closing': ['Review closing checklist', 'Prepare deed and transfer documents', 'Prepare assignment of leases and contracts', 'Coordinate payoff letters (existing mortgages)', 'Review closing statement', 'FIRPTA compliance / withholding analysis'],
+      'Closing': ['Review and approve settlement statement', 'Execute closing documents', 'Coordinate key/possession transfer', 'Confirm receipt of proceeds'],
+      'Post-Closing': ['Confirm recording of documents', 'Distribute final documents', 'Tenant notifications', 'Close matter file']
+    }
+  },
+  Lease: {
+    name: 'Lease Transaction',
+    description: 'Commercial lease drafting, negotiation, and execution.',
+    phases: {
+      'Pre-Contract': ['Review Letter of Intent', 'Tenant/Landlord credit review', 'Review existing lease form'],
+      'Due Diligence': ['Title/ownership verification', 'Zoning compliance check', 'Review building rules & regulations', 'Review CAM/operating expense provisions'],
+      'Contract': ['Draft lease agreement', 'Negotiate lease terms', 'Review tenant improvement provisions', 'Prepare guaranty (if applicable)', 'Review insurance requirements', 'Prepare SNDA (if applicable)'],
+      'Pre-Closing': ['Final lease review', 'Prepare commencement date agreement', 'Coordinate security deposit', 'Obtain landlord/tenant signatures'],
+      'Post-Closing': ['Record memorandum of lease (if applicable)', 'Distribute fully executed lease', 'Calendar critical dates (rent commencement, renewal options, expiration)', 'Close matter file']
+    }
+  },
+  Refinance: {
+    name: 'Refinance',
+    description: 'Mortgage refinance or new financing for existing property.',
+    phases: {
+      'Pre-Contract': ['Review loan term sheet', 'Engage lender counsel coordination', 'Review borrower entity documents'],
+      'Due Diligence': ['Order title search', 'Review title commitment', 'Order updated survey (if required)', 'Review appraisal', 'Environmental compliance review', 'Review existing loan documents for prepayment/defeasance'],
+      'Pre-Closing': ['Review loan documents', 'Prepare borrower closing checklist', 'Review organizational documents', 'Prepare legal opinions (if required)', 'Coordinate payoff of existing debt', 'Review title insurance commitment'],
+      'Closing': ['Review closing statement', 'Execute loan documents', 'Fund loan', 'Record mortgage/deed of trust'],
+      'Post-Closing': ['Confirm recording', 'Obtain final title insurance policy', 'Distribute executed documents', 'Close matter file']
+    }
+  }
+};
+
+function renderTemplates() {
+  const el = document.getElementById('view-templates');
+  el.innerHTML = `<h1 style="font-size:24px;font-weight:700;margin-bottom:8px;">Matter Templates</h1>
+    <p style="color:var(--text-muted);margin-bottom:20px;">Pre-built task checklists for common transaction types. Apply to a new or existing matter.</p>
+    <div class="template-grid">
+      ${Object.entries(TEMPLATES).map(([key, tpl]) => {
+        const taskCount = Object.values(tpl.phases).flat().length;
+        const phaseNames = Object.keys(tpl.phases).join(' &rarr; ');
+        return `<div class="template-card" onclick="previewTemplate('${key}')">
+          <h3>${tpl.name}</h3>
+          <p>${tpl.description}</p>
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;">${taskCount} tasks across ${Object.keys(tpl.phases).length} phases</div>
+          <div class="template-phases">${phaseNames}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function previewTemplate(key) {
+  const tpl = TEMPLATES[key];
+  if (!tpl) return;
+  let html = `<h2>${tpl.name} Template</h2><p style="color:var(--text-muted);margin-bottom:16px">${tpl.description}</p>`;
+  Object.entries(tpl.phases).forEach(([phase, tasks]) => {
+    html += `<div style="margin-bottom:12px"><strong style="color:var(--text-muted);font-size:13px">${phase}</strong>`;
+    html += `<ul style="margin:4px 0 0 20px;font-size:13px">${tasks.map(t => `<li>${t}</li>`).join('')}</ul></div>`;
+  });
+  html += `<div style="margin-top:16px;display:flex;gap:8px">
+    <button class="btn" onclick="renderTemplates()">Back</button>
+    <button class="btn btn-primary" onclick="createFromTemplate('${key}')">Create New Matter with Template</button>
+  </div>`;
+  document.getElementById('view-templates').innerHTML = html;
+}
+
+function createFromTemplate(key) {
+  const name = prompt('Matter name:');
+  if (!name) return;
+  const client = prompt('Client name:');
+  const m = addMatter({ matterName: name, clientName: client || '', matterType: key });
+  applyTemplate(m.id, key);
+  toast(`Matter created with ${key} template!`, 'success');
+  openDetail(m.id);
+}
+
+function applyTemplate(matterId, type) {
+  const tpl = TEMPLATES[type];
+  if (!tpl) return;
+  const m = getMatter(matterId);
+  Object.entries(tpl.phases).forEach(([phase, tasks]) => {
+    tasks.forEach(text => {
+      m.tasks.push({ id: uuid(), text, phase, completed: false, dueDate: '', assignee: '', subtasks: [] });
+    });
+  });
+  saveData();
+}
+
+function showApplyTemplate(matterId) {
+  const type = prompt('Template to apply: Purchase, Sale, Lease, or Refinance');
+  if (!type) return;
+  const key = Object.keys(TEMPLATES).find(k => k.toLowerCase() === type.toLowerCase());
+  if (!key) { toast('Unknown template: ' + type, 'error'); return; }
+  applyTemplate(matterId, key);
+  toast(key + ' template applied!', 'success');
+  renderDetail();
+}
+
+// ======================== CALENDAR VIEW ========================
+function renderCalendar() {
+  const el = document.getElementById('view-calendar');
+  const year = calendarDate.getFullYear();
+  const month = calendarDate.getMonth();
+  const monthName = calendarDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrev = new Date(year, month, 0).getDate();
+  const todayStr = today();
+
+  // Collect events for this month
+  const events = {};
+  const addEvent = (date, label, type) => {
+    if (!date) return;
+    if (!events[date]) events[date] = [];
+    events[date].push({ label, type });
+  };
+  matters.forEach(m => {
+    if (m.status === 'Closed') return;
+    if (m.closingDate) addEvent(m.closingDate, esc(m.matterName || 'Closing'), 'closing');
+    (m.tasks || []).forEach(t => {
+      if (!t.completed && t.dueDate) addEvent(t.dueDate, esc(t.text), isOverdue(t.dueDate) ? 'overdue' : 'task');
+    });
+  });
+
+  let html = `<h1 style="font-size:24px;font-weight:700;margin-bottom:20px;">Calendar</h1>
+    <div class="section">
+      <div class="cal-header">
+        <h2 style="font-size:18px;">${monthName}</h2>
+        <div class="cal-nav">
+          <button class="btn btn-sm" onclick="calendarDate.setMonth(calendarDate.getMonth()-1);renderCalendar()">&larr; Prev</button>
+          <button class="btn btn-sm" onclick="calendarDate=new Date();renderCalendar()">Today</button>
+          <button class="btn btn-sm" onclick="calendarDate.setMonth(calendarDate.getMonth()+1);renderCalendar()">Next &rarr;</button>
+        </div>
+      </div>
+      <div class="cal-grid">`;
+
+  // Day names
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+    html += `<div class="cal-day-name">${d}</div>`;
+  });
+
+  // Previous month padding
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const d = daysInPrev - i;
+    html += `<div class="cal-day other-month"><div class="cal-day-num">${d}</div></div>`;
+  }
+
+  // Current month days
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isT = dateStr === todayStr;
+    const dayEvents = events[dateStr] || [];
+    html += `<div class="cal-day ${isT ? 'today' : ''}" onclick="showDayEvents('${dateStr}')">
+      <div class="cal-day-num">${d}</div>
+      ${dayEvents.slice(0, 3).map(e => `<div class="cal-event ${e.type}">${e.label}</div>`).join('')}
+      ${dayEvents.length > 3 ? `<div style="font-size:10px;color:var(--text-muted)">+${dayEvents.length - 3} more</div>` : ''}
+    </div>`;
+  }
+
+  // Next month padding
+  const totalCells = firstDay + daysInMonth;
+  const remaining = (7 - totalCells % 7) % 7;
+  for (let d = 1; d <= remaining; d++) {
+    html += `<div class="cal-day other-month"><div class="cal-day-num">${d}</div></div>`;
+  }
+
+  html += `</div></div>`;
+  el.innerHTML = html;
+}
+
+function showDayEvents(dateStr) {
+  const items = [];
+  matters.forEach(m => {
+    if (m.status === 'Closed') return;
+    if (m.closingDate === dateStr) items.push({ type: 'Closing', text: m.matterName, matterId: m.id });
+    (m.tasks || []).forEach(t => {
+      if (!t.completed && t.dueDate === dateStr) items.push({ type: 'Task', text: t.text + ' (' + m.matterName + ')', matterId: m.id });
+    });
+  });
+  if (items.length === 0) { toast('No events on ' + formatDate(dateStr)); return; }
+  const msg = items.map(i => `${i.type}: ${i.text}`).join('\n');
+  alert(`Events for ${formatDate(dateStr)}:\n\n${msg}`);
+}
+
+// ======================== SETTINGS ========================
+function renderSettings() {
+  const el = document.getElementById('view-settings');
+  const dataSize = new Blob([JSON.stringify(matters)]).size;
+  const sizeStr = dataSize < 1024 ? dataSize + ' B' : (dataSize / 1024).toFixed(1) + ' KB';
+  el.innerHTML = `<h1 style="font-size:24px;font-weight:700;margin-bottom:20px;">Settings</h1>
+    <div class="section settings-section">
+      <h3>Export Data</h3>
+      <p>Download all your matters as a JSON file for backup.</p>
+      <p style="font-size:12px;color:var(--text-light);margin-bottom:8px">Current data: ${matters.length} matters, ${sizeStr}</p>
+      <button class="btn btn-primary" onclick="exportData()">Export JSON</button>
+    </div>
+    <div class="section settings-section">
+      <h3>Import Data</h3>
+      <p>Import matters from a previously exported JSON file. This will merge with existing data.</p>
+      <button class="btn" onclick="document.getElementById('importFileInput').click()">Import JSON</button>
+    </div>
+    <div class="section settings-section">
+      <h3>Clear All Data</h3>
+      <p>Permanently delete all matters and reset the tracker. This cannot be undone.</p>
+      <button class="btn btn-danger" onclick="confirmClearAll()">Clear All Data</button>
+    </div>
+    <div class="section settings-section">
+      <h3>Keyboard Shortcuts</h3>
+      <table style="font-size:13px">
+        <tr><td style="padding:4px 16px 4px 0;font-weight:600">Ctrl + N</td><td>Quick Add new matter</td></tr>
+        <tr><td style="padding:4px 16px 4px 0;font-weight:600">Ctrl + F</td><td>Focus search bar</td></tr>
+        <tr><td style="padding:4px 16px 4px 0;font-weight:600">Ctrl + E</td><td>Export data</td></tr>
+        <tr><td style="padding:4px 16px 4px 0;font-weight:600">Escape</td><td>Close modal / Go back</td></tr>
+      </table>
+    </div>
+    <div class="section settings-section">
+      <h3>About</h3>
+      <p>ALTA Matter Tracker v1.0<br>A local-first matter management tool for transactional real estate attorneys.<br>All data is stored in your browser's localStorage.</p>
+    </div>`;
+}
+
+function exportData() {
+  const data = JSON.stringify(matters, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `alta-matters-${today()}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('Data exported!', 'success');
+}
+
+function handleImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) throw new Error('Invalid format');
+      // Merge: skip duplicates by id
+      const existingIds = new Set(matters.map(m => m.id));
+      let added = 0;
+      imported.forEach(m => {
+        if (!existingIds.has(m.id)) { matters.push(m); added++; }
+      });
+      saveData();
+      toast(`Imported ${added} new matters!`, 'success');
+      renderCurrentView();
+    } catch(err) {
+      toast('Import failed: ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+async function confirmClearAll() {
+  const ok = await showConfirm('Clear All Data', 'This will permanently delete ALL matters and tasks. This cannot be undone. Are you sure?');
+  if (ok) {
+    matters = [];
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(COUNTER_KEY);
+    saveData();
+    toast('All data cleared');
+    renderCurrentView();
+  }
+}
+
+// ======================== SEARCH ========================
+function handleSearch(query) {
+  if (!query.trim()) {
+    if (currentView !== 'detail') renderCurrentView();
+    return;
+  }
+  const q = query.toLowerCase();
+  const results = matters.filter(m =>
+    (m.matterName||'').toLowerCase().includes(q) ||
+    (m.clientName||'').toLowerCase().includes(q) ||
+    (m.propertyAddress||'').toLowerCase().includes(q) ||
+    (m.clientMatterNumber||'').toLowerCase().includes(q) ||
+    (m.assignee||'').toLowerCase().includes(q) ||
+    (m.notes||'').toLowerCase().includes(q)
+  );
+  showView('matters');
+  // Render search results in matters view
+  const el = document.getElementById('view-matters');
+  el.innerHTML = `<h1 style="font-size:24px;font-weight:700;margin-bottom:8px;">Search Results</h1>
+    <p style="color:var(--text-muted);margin-bottom:16px;">${results.length} result(s) for "${esc(query)}"</p>`;
+  if (results.length === 0) {
+    el.innerHTML += `<div class="section"><div class="empty-state"><h3>No results</h3><p>Try a different search term.</p></div></div>`;
+  } else {
+    el.innerHTML += `<div class="section"><div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Client Name</th><th>Matter Name</th><th>Type</th><th>Status</th><th>Closing Date</th></tr></thead>
+      <tbody>${results.map(m => `<tr class="clickable" onclick="openDetail('${m.id}')">
+        <td>${m.number}</td><td>${esc(m.clientName||'—')}</td><td><strong>${esc(m.matterName||'Untitled')}</strong></td>
+        <td>${esc(m.matterType||'—')}</td><td>${statusBadge(m.status)}</td><td>${formatDate(m.closingDate)}</td>
+      </tr>`).join('')}</tbody></table></div></div>`;
+  }
+}
+
+// ======================== EDIT MATTER MODAL ========================
+function editMatterModal(id) {
+  // Reuse quick add modal structure for editing
+  const m = getMatter(id);
+  if (!m) return;
+  parsedMatter = { ...m };
+  document.getElementById('quickAddModal').classList.add('show');
+  document.getElementById('quickAddInput').value = '';
+  document.getElementById('quickAddInput').style.display = 'none';
+  document.querySelector('.quick-add-hint').style.display = 'none';
+  document.querySelector('#quickAddModal .modal-header h2').textContent = 'Edit Matter';
+  document.getElementById('quickAddParseBtn').style.display = 'none';
+  document.getElementById('quickAddSaveBtn').style.display = '';
+  document.getElementById('quickAddSaveBtn').textContent = 'Save Changes';
+  document.getElementById('quickAddSaveBtn').onclick = function() {
+    updateMatter(id, parsedMatter);
+    closeQuickAdd();
+    toast('Matter updated', 'success');
+    renderDetail();
+    // Reset
+    document.getElementById('quickAddInput').style.display = '';
+    document.querySelector('.quick-add-hint').style.display = '';
+    document.querySelector('#quickAddModal .modal-header h2').textContent = 'Quick Add Matter';
+    document.getElementById('quickAddSaveBtn').textContent = 'Save Matter';
+    document.getElementById('quickAddSaveBtn').onclick = saveQuickAdd;
+  };
+  renderQuickAddPreview();
+}
+
+// ======================== HELPERS ========================
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function statusBadge(status) {
+  const cls = { Active:'badge-green', Pending:'badge-yellow', 'On Hold':'badge-gray', Closed:'badge-blue' };
+  return `<span class="badge ${cls[status]||'badge-gray'}">${status||'Active'}</span>`;
+}
+
+// ======================== KEYBOARD SHORTCUTS ========================
+document.addEventListener('keydown', e => {
+  // Ctrl+N: Quick Add
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); openQuickAdd(); }
+  // Ctrl+F: Focus search
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') { e.preventDefault(); document.getElementById('globalSearch').focus(); }
+  // Ctrl+E: Export
+  if ((e.ctrlKey || e.metaKey) && e.key === 'e') { e.preventDefault(); exportData(); }
+  // Escape: Close modal or go back
+  if (e.key === 'Escape') {
+    if (document.getElementById('quickAddModal').classList.contains('show')) closeQuickAdd();
+    else if (document.getElementById('confirmDialog').classList.contains('show')) closeConfirm(false);
+    else if (currentView === 'detail') goBack();
+  }
+});
+
+// ======================== INIT ========================
+function init() {
+  loadData();
+  updateNavCounts();
+  renderDashboard();
+}
+init();
+</script>
+</body>
+</html>
